@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="da" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PengeOverblik</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<button class="menu-toggle" onclick="toggleMenu()">☰</button>
+
+<div class="layout">
+    <aside class="sidebar">
+        <h1>Penge<span>Overblik</span></h1>
+        <nav>
+            <a class="active" th:href="@{/(month=${month}, year=${year})}">Overblik</a>
+            <a th:href="@{/transactions(month=${month}, year=${year})}">Transaktioner</a>
+            <a th:href="@{/budget(month=${month}, year=${year})}">Budget</a>
+            <a href="/recurring-payments">Faste betalinger</a>
+            <a href="/categories">Kategorier</a>
+        </nav>
+    </aside>
+
+    <main class="content">
+        <header>
+            <div>
+                <h2>Mit overblik</h2>
+                <p>
+                    <span th:switch="${month}">
+                        <span th:case="1">Januar</span>
+                        <span th:case="2">Februar</span>
+                        <span th:case="3">Marts</span>
+                        <span th:case="4">April</span>
+                        <span th:case="5">Maj</span>
+                        <span th:case="6">Juni</span>
+                        <span th:case="7">Juli</span>
+                        <span th:case="8">August</span>
+                        <span th:case="9">September</span>
+                        <span th:case="10">Oktober</span>
+                        <span th:case="11">November</span>
+                        <span th:case="12">December</span>
+                    </span>
+                    <span th:text="${year}"></span>
+                </p>
+            </div>
+        </header>
+
+        <div class="panel month-selector">
+            <form action="/" method="get">
+                <select name="month">
+                    <option value="1" th:selected="${month == 1}">Januar</option>
+                    <option value="2" th:selected="${month == 2}">Februar</option>
+                    <option value="3" th:selected="${month == 3}">Marts</option>
+                    <option value="4" th:selected="${month == 4}">April</option>
+                    <option value="5" th:selected="${month == 5}">Maj</option>
+                    <option value="6" th:selected="${month == 6}">Juni</option>
+                    <option value="7" th:selected="${month == 7}">Juli</option>
+                    <option value="8" th:selected="${month == 8}">August</option>
+                    <option value="9" th:selected="${month == 9}">September</option>
+                    <option value="10" th:selected="${month == 10}">Oktober</option>
+                    <option value="11" th:selected="${month == 11}">November</option>
+                    <option value="12" th:selected="${month == 12}">December</option>
+                </select>
+                <input type="number" name="year" th:value="${year}">
+                <button type="submit" class="add-button">Vis</button>
+            </form>
+
+            <div class="currency-selector">
+                <label for="currency">Valuta:</label>
+                <select id="currency">
+                    <option value="DKK">DKK</option>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                    <option value="UAH">UAH</option>
+                </select>
+            </div>
+        </div>
+
+        <section class="cards">
+            <div class="card highlight">
+                <p>Til rådighed</p>
+                <h3>
+                    <span class="money-amount"
+                          th:attr="data-amount=${dashboard.remainingAmount}"
+                          th:text="${#numbers.formatDecimal(dashboard.remainingAmount,1,'POINT',2,'COMMA')}"></span>
+                    <span class="currency-label">kr.</span>
+                </h3>
+                <small>denne måned</small>
+            </div>
+
+            <div class="card">
+                <p>Indkomst</p>
+                <h3>
+                    <span class="money-amount"
+                          th:attr="data-amount=${dashboard.totalIncome}"
+                          th:text="${#numbers.formatDecimal(dashboard.totalIncome,1,'POINT',2,'COMMA')}"></span>
+                    <span class="currency-label">kr.</span>
+                </h3>
+            </div>
+
+            <div class="card">
+                <p>Udgifter</p>
+                <h3>
+                    <span class="money-amount"
+                          th:attr="data-amount=${dashboard.totalExpenses}"
+                          th:text="${#numbers.formatDecimal(dashboard.totalExpenses,1,'POINT',2,'COMMA')}"></span>
+                    <span class="currency-label">kr.</span>
+                </h3>
+            </div>
+
+            <div class="card">
+                <p>Til faste betalinger</p>
+                <h3>
+                    <span class="money-amount"
+                          th:attr="data-amount=${dashboard.monthlySavings}"
+                          th:text="${#numbers.formatDecimal(dashboard.monthlySavings,1,'POINT',2,'COMMA')}"></span>
+                    <span class="currency-label">kr.</span>
+                </h3>
+                <small>skal sættes til side pr. måned</small>
+            </div>
+        </section>
+
+        <div class="panel finance-chart-panel">
+            <div class="chart-header">
+                <div>
+                    <h3>Indkomst & Udgifter</h3>
+                    <p>Udvikling de sidste 6 måneder</p>
+                </div>
+                <span class="chart-period">Sidste 6 måneder</span>
+            </div>
+
+            <div class="chart-legend">
+                <div><span class="legend-dot income-dot"></span>Indkomst</div>
+                <div><span class="legend-dot expense-dot"></span>Udgifter</div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </div>
+
+        <section class="bottom">
+            <div class="panel">
+                <h3>Budget</h3>
+
+                <div th:if="${!budgets.isEmpty()}">
+                    <div class="budget-info">
+                        <p>
+                            Samlet budget:
+                            <strong>
+                                <span class="money-amount"
+                                      th:attr="data-amount=${totalBudget}"
+                                      th:text="${#numbers.formatDecimal(totalBudget,1,'POINT',2,'COMMA')}"></span>
+                                <span class="currency-label">kr.</span>
+                            </strong>
+                        </p>
+
+                        <p>
+                            Brugt:
+                            <strong>
+                                <span class="money-amount"
+                                      th:attr="data-amount=${dashboard.totalExpenses}"
+                                      th:text="${#numbers.formatDecimal(dashboard.totalExpenses,1,'POINT',2,'COMMA')}"></span>
+                                <span class="currency-label">kr.</span>
+                            </strong>
+                        </p>
+
+                        <p>
+                            Tilbage:
+                            <strong>
+                                <span class="money-amount"
+                                      th:attr="data-amount=${budgetRemaining}"
+                                      th:text="${#numbers.formatDecimal(budgetRemaining,1,'POINT',2,'COMMA')}"></span>
+                                <span class="currency-label">kr.</span>
+                            </strong>
+                        </p>
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar"
+                             th:style="'width: ' + ${budgetUsedPercent > 100 ? 100 : budgetUsedPercent} + '%'"></div>
+                    </div>
+
+                    <p class="budget-percent">
+                        <span th:text="${budgetUsedPercent}"></span>% brugt
+                    </p>
+
+                    <div class="budget-overview">
+                        <div class="budget-item" th:each="item : ${budgetOverview}">
+                            <div class="budget-item-header">
+                                <strong th:text="${item.subcategoryName}"></strong>
+                                <span>
+                                    <span class="money-amount"
+                                          th:attr="data-amount=${item.spentAmount}"
+                                          th:text="${#numbers.formatDecimal(item.spentAmount,1,'POINT',2,'COMMA')}"></span>
+                                    /
+                                    <span class="money-amount"
+                                          th:attr="data-amount=${item.budgetAmount}"
+                                          th:text="${#numbers.formatDecimal(item.budgetAmount,1,'POINT',2,'COMMA')}"></span>
+                                    <span class="currency-label">kr.</span>
+                                </span>
+                            </div>
+
+                            <div class="category-bar-background">
+                                <div class="category-bar"
+                                     th:style="'width: ' + ${item.percentage > 100 ? 100 : item.percentage} + '%'"></div>
+                            </div>
+
+                            <small>
+                                Tilbage:
+                                <span class="money-amount"
+                                      th:attr="data-amount=${item.remainingAmount}"
+                                      th:text="${#numbers.formatDecimal(item.remainingAmount,1,'POINT',2,'COMMA')}"></span>
+                                <span class="currency-label">kr.</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <p th:if="${budgets.isEmpty()}">
+                    Der er ikke oprettet et budget for denne måned.
+                </p>
+            </div>
+
+            <div class="panel">
+                <h3>Kommende betalinger</h3>
+
+                <div th:if="${!payments.isEmpty()}">
+                    <div class="payment" th:each="payment : ${payments}">
+                        <div>
+                            <strong th:text="${payment.name}"></strong>
+                            <p>
+                                Næste betaling:
+                                <span th:text="${#temporals.format(payment.nextPaymentDate,'dd. MMMM yyyy')}"></span>
+                            </p>
+                        </div>
+
+                        <strong>
+                            <span class="money-amount"
+                                  th:attr="data-amount=${payment.amount}"
+                                  th:text="${#numbers.formatDecimal(payment.amount,1,'POINT',2,'COMMA')}"></span>
+                            <span class="currency-label">kr.</span>
+                        </strong>
+                    </div>
+                </div>
+
+                <p th:if="${payments.isEmpty()}">
+                    Ingen kommende betalinger.
+                </p>
+            </div>
+        </section>
+
+        <div class="panel category-expenses">
+            <h3>Udgifter pr. kategori</h3>
+
+            <div th:if="${!expensesByCategory.isEmpty()}">
+                <div class="category-expense" th:each="expense : ${expensesByCategory}">
+                    <div class="category-expense-name">
+                        <span th:text="${expense.categoryName}"></span>
+                    </div>
+
+                    <div class="category-expense-amount">
+                        <strong>
+                            <span class="money-amount"
+                                  th:attr="data-amount=${expense.amount}"
+                                  th:text="${#numbers.formatDecimal(expense.amount,1,'POINT',2,'COMMA')}"></span>
+                            <span class="currency-label">kr.</span>
+                        </strong>
+                    </div>
+
+                    <div class="category-bar-background">
+                        <div class="category-bar"
+                             th:style="'width: ' + ${expense.percentage} + '%'"></div>
+                    </div>
+                </div>
+            </div>
+
+            <p th:if="${expensesByCategory.isEmpty()}">
+                Ingen udgifter registreret denne måned.
+            </p>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    function toggleMenu() {
+        document.querySelector('.sidebar').classList.toggle('sidebar-open');
+    }
+
+    const currencySelect = document.getElementById('currency');
+
+    const currencySymbols = {
+        DKK: 'kr.',
+        EUR: '€',
+        USD: '$',
+        UAH: '₴'
+    };
+
+    const savedCurrency = localStorage.getItem('currency') || 'DKK';
+    currencySelect.value = savedCurrency;
+
+    async function updateCurrency(currency) {
+        localStorage.setItem('currency', currency);
+
+        let rate = 1;
+
+        if (currency !== 'DKK') {
+            const response = await fetch(`/api/currency?to=${currency}`);
+            const data = await response.json();
+            rate = Number(data.rate);
+        }
+
+        document.querySelectorAll('.money-amount').forEach(element => {
+            const originalAmount = Number(element.dataset.amount);
+            const convertedAmount = originalAmount * rate;
+
+            element.textContent = formatMoney(convertedAmount);
+        });
+
+        document.querySelectorAll('.currency-label').forEach(label => {
+            label.textContent = currencySymbols[currency];
+        });
+    }
+
+    function formatMoney(amount) {
+        return new Intl.NumberFormat('da-DK', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    currencySelect.addEventListener('change', function () {
+        updateCurrency(currencySelect.value);
+    });
+
+    updateCurrency(savedCurrency);
+</script>
+
+</body>
+</html>

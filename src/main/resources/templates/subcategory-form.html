@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="da" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tilføj underkategori - PengeOverblik</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>Penge<span>Overblik</span></h1>
+    <nav>
+      <a href="/">Overblik</a>
+      <a href="/transactions">Transaktioner</a>
+      <a href="/budget">Budget</a>
+      <a href="/recurring-payments">Faste betalinger</a>
+      <a class="active" href="/categories">Kategorier</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <header>
+      <div>
+        <h2>Tilføj underkategori</h2>
+        <p>Opret en ny underkategori</p>
+      </div>
+    </header>
+
+    <div class="panel">
+      <form action="/subcategories" method="post" class="transaction-form">
+        <label for="name">Navn</label>
+        <input type="text" id="name" name="name" placeholder="Fx Café" required>
+
+        <label for="categoryId">Hovedkategori</label>
+        <select id="categoryId" name="categoryId" required>
+          <option th:each="category : ${categories}"
+                  th:value="${category.id}"
+                  th:text="${category.name}">
+          </option>
+        </select>
+
+        <div class="form-actions">
+          <a href="/categories" class="cancel-button">Annuller</a>
+          <button type="submit" class="add-button">Gem underkategori</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+</body>
+</html>

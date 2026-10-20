@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="da" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rediger transaktion - PengeOverblik</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <h1>Penge<span>Overblik</span></h1>
+
+    <nav>
+      <a href="/">Overblik</a>
+      <a class="active" href="/transactions">Transaktioner</a>
+      <a href="/budget">Budget</a>
+      <a href="/recurring-payments">Faste betalinger</a>
+      <a href="/categories">Kategorier</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+
+    <header>
+      <div>
+        <h2>Rediger transaktion</h2>
+        <p>Ret oplysningerne og gem ændringerne</p>
+      </div>
+    </header>
+
+    <div class="panel">
+
+      <form th:action="@{/transactions/{id}/edit(id=${transaction.id})}"
+            method="post"
+            class="transaction-form">
+
+        <label for="description">Beskrivelse</label>
+        <input type="text"
+               id="description"
+               name="description"
+               th:value="${transaction.description}"
+               required>
+
+        <label for="amount">Beløb</label>
+        <input type="number"
+               id="amount"
+               name="amount"
+               step="0.01"
+               min="0.01"
+               th:value="${transaction.amount}"
+               required>
+
+        <label for="date">Dato</label>
+        <input type="date"
+               id="date"
+               name="date"
+               th:value="${transaction.date}"
+               required>
+
+        <label for="type">Type</label>
+        <select id="type" name="type" required>
+
+          <option value="EXPENSE"
+                  th:selected="${transaction.type.name() == 'EXPENSE'}">
+            Udgift
+          </option>
+
+          <option value="INCOME"
+                  th:selected="${transaction.type.name() == 'INCOME'}">
+            Indkomst
+          </option>
+
+        </select>
+
+        <label for="subcategoryId">Underkategori</label>
+        <select id="subcategoryId"
+                name="subcategoryId"
+                required>
+
+          <option th:each="subcategory : ${subcategories}"
+                  th:value="${subcategory.id}"
+                  th:text="${subcategory.name}"
+                  th:selected="${transaction.subcategory.id == subcategory.id}">
+          </option>
+
+        </select>
+
+        <div class="form-actions">
+
+          <a href="/transactions"
+             class="cancel-button">
+            Annuller
+          </a>
+
+          <button type="submit"
+                  class="add-button">
+            Gem ændringer
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

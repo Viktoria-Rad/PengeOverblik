@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="da" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget - PengeOverblik</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>Penge<span>Overblik</span></h1>
+    <nav>
+      <a th:href="@{/(month=${month}, year=${year})}">Overblik</a>
+      <a th:href="@{/transactions(month=${month}, year=${year})}">Transaktioner</a>
+      <a class="active" th:href="@{/budget(month=${month}, year=${year})}">Budget</a>
+      <a href="/recurring-payments">Faste betalinger</a>
+      <a href="/categories">Kategorier</a>
+    </nav>
+  </aside>
+  <main class="content">
+    <header>
+      <div>
+        <h2>Budget</h2>
+        <p>
+          Budget for
+          <span th:switch="${month}">
+            <span th:case="1">januar</span>
+            <span th:case="2">februar</span>
+            <span th:case="3">marts</span>
+            <span th:case="4">april</span>
+            <span th:case="5">maj</span>
+            <span th:case="6">juni</span>
+            <span th:case="7">juli</span>
+            <span th:case="8">august</span>
+            <span th:case="9">september</span>
+            <span th:case="10">oktober</span>
+            <span th:case="11">november</span>
+            <span th:case="12">december</span>
+          </span>
+          <span th:text="${year}"></span>
+        </p>
+      </div>
+      <a th:href="@{/budget/new(month=${month}, year=${year})}"
+         class="add-button">
+        + Opret budget
+      </a>
+    </header>
+    <p class="error-message"
+       th:if="${param.error != null and param.error[0] == 'amount'}">
+      Budgetbeløbet skal være større end 0.
+    </p>
+    <div class="panel month-selector">
+      <form action="/budget" method="get">
+        <select name="month">
+          <option value="1" th:selected="${month == 1}">Januar</option>
+          <option value="2" th:selected="${month == 2}">Februar</option>
+          <option value="3" th:selected="${month == 3}">Marts</option>
+          <option value="4" th:selected="${month == 4}">April</option>
+          <option value="5" th:selected="${month == 5}">Maj</option>
+          <option value="6" th:selected="${month == 6}">Juni</option>
+          <option value="7" th:selected="${month == 7}">Juli</option>
+          <option value="8" th:selected="${month == 8}">August</option>
+          <option value="9" th:selected="${month == 9}">September</option>
+          <option value="10" th:selected="${month == 10}">Oktober</option>
+          <option value="11" th:selected="${month == 11}">November</option>
+          <option value="12" th:selected="${month == 12}">December</option>
+        </select>
+        <input type="number"
+               name="year"
+               th:value="${year}"
+               required>
+        <button type="submit" class="add-button">
+          Vis budget
+        </button>
+      </form>
+    </div>
+    <div class="panel">
+      <h3>Budgetter</h3>
+      <div th:if="${!budgets.isEmpty()}">
+        <div class="budget-row"
+             th:each="budget : ${budgets}">
+          <div>
+            <strong th:text="${budget.subcategory.name}">
+              Underkategori
+            </strong>
+            <p>
+              <span th:text="${budget.month}"></span> /
+              <span th:text="${budget.year}"></span>
+            </p>
+          </div>
+          <div class="budget-actions">
+            <strong>
+              <span th:text="${budget.amount}"></span> kr.
+            </strong>
+            <a th:href="@{/budget/{id}/edit(id=${budget.id})}"
+               class="icon-button edit-icon"
+               title="Rediger"
+               aria-label="Rediger">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.96 1.96 3.75 3.75 2.13-1.79z"/>
+              </svg>
+            </a>
+            <form th:action="@{/budget/{id}/delete(id=${budget.id})}"
+                  method="post">
+              <input type="hidden"
+                     name="month"
+                     th:value="${month}">
+              <input type="hidden"
+                     name="year"
+                     th:value="${year}">
+              <button type="submit"
+                      class="icon-button delete-icon"
+                      title="Slet"
+                      aria-label="Slet">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zm3-9h2v8H9v-8zm4 0h2v8h-2v-8zm2.5-6-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="budget-total"
+           th:if="${!budgets.isEmpty()}">
+        <span>Samlet budget</span>
+        <strong>
+          <span th:text="${totalBudget}"></span> kr.
+        </strong>
+      </div>
+      <p th:if="${budgets.isEmpty()}">
+        Du har ikke oprettet nogen budgetter for denne måned.
+      </p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

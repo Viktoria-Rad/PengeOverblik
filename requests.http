@@ -1,0 +1,57 @@
+GET http://localhost:7070/api/transactions/14
+
+
+###
+POST http://localhost:7070/api/transactions
+Content-Type: application/json
+
+{
+  "amount": 350.00,
+  "date": "2026-09-30",
+  "type": "EXPENSE",
+  "description": "Test fra API",
+  "subcategoryId": 1
+}
+
+### Update transaction
+PUT http://localhost:7070/api/transactions/5
+Content-Type: application/json
+
+{
+  "amount": 21000.00,
+  "date": "2026-08-20",
+  "type": "INCOME",
+  "description": "Løn opdateret",
+  "subcategoryId": 8
+}
+
+### Delete transaction
+DELETE http://localhost:7070/api/transactions/14
+
+###
+GET http://localhost:7070/api/budgets/5
+
+### Create budget
+POST http://localhost:7070/api/budgets
+Content-Type: application/json
+
+{
+  "amount": 3000.00,
+  "month": 10,
+  "year": 2026,
+  "subcategoryId": 1
+}
+
+### Update budget
+PUT http://localhost:7070/api/budgets/5
+Content-Type: application/json
+
+{
+  "amount": 3500.00,
+  "month": 10,
+  "year": 2026,
+  "subcategoryId": 1
+}
+
+### Delete budget
+DELETE http://localhost:7070/api/budgets/5

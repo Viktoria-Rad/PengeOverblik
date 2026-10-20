@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="da" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rediger kategori - PengeOverblik</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>Penge<span>Overblik</span></h1>
+    <nav>
+      <a href="/">Overblik</a>
+      <a href="/transactions">Transaktioner</a>
+      <a href="/budget">Budget</a>
+      <a href="/recurring-payments">Faste betalinger</a>
+      <a class="active" href="/categories">Kategorier</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <header>
+      <div>
+        <h2>Rediger kategori</h2>
+        <p>Ret navn eller type</p>
+      </div>
+    </header>
+
+    <div class="panel">
+      <form th:action="@{/categories/{id}/edit(id=${category.id})}"
+            method="post" class="transaction-form">
+
+        <label for="name">Navn</label>
+        <input type="text" id="name" name="name"
+               th:value="${category.name}" required>
+
+        <label for="type">Type</label>
+        <select id="type" name="type" required>
+          <option value="EXPENSE"
+                  th:selected="${category.type.name() == 'EXPENSE'}">
+            Udgift
+          </option>
+          <option value="INCOME"
+                  th:selected="${category.type.name() == 'INCOME'}">
+            Indkomst
+          </option>
+        </select>
+
+        <div class="form-actions">
+          <a href="/categories" class="cancel-button">Annuller</a>
+          <button type="submit" class="add-button">Gem ændringer</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+</body>
+</html>

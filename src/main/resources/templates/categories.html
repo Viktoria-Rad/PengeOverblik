@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="da" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kategorier - PengeOverblik</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <h1>Penge<span>Overblik</span></h1>
+
+    <nav>
+      <a href="/">Overblik</a>
+      <a href="/transactions">Transaktioner</a>
+      <a href="/budget">Budget</a>
+      <a href="/recurring-payments">Faste betalinger</a>
+      <a class="active" href="/categories">Kategorier</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+
+    <header>
+      <div>
+        <h2>Kategorier</h2>
+        <p>Overblik over dine kategorier og underkategorier</p>
+      </div>
+
+      <div class="header-actions">
+        <a href="/categories/new" class="add-button">+ Tilføj kategori</a>
+        <a href="/subcategories/new" class="add-button">+ Tilføj underkategori</a>
+      </div>
+    </header>
+
+    <p class="error-message"
+       th:if="${param.error != null}">
+      Underkategorien kan ikke slettes, fordi den allerede er i brug.
+    </p>
+
+    <p class="error-message"
+       th:if="${param.categoryError != null}">
+      Kategorien kan ikke slettes, fordi den har underkategorier.
+    </p>
+
+    <section class="categories-grid">
+
+      <div class="category-card"
+           th:each="category : ${categories}">
+
+        <div class="category-header">
+          <div>
+            <h3 th:text="${category.name}"></h3>
+            <span th:text="${category.type}"></span>
+          </div>
+
+          <div class="category-actions">
+            <a th:href="@{/categories/{id}/edit(id=${category.id})}"
+               class="icon-button edit-icon"
+               title="Rediger"
+               aria-label="Rediger">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.96 1.96 3.75 3.75 2.13-1.79z"/>
+              </svg>
+            </a>
+
+            <form th:action="@{/categories/{id}/delete(id=${category.id})}"
+                  method="post">
+              <button type="submit"
+                      class="icon-button delete-icon"
+                      title="Slet"
+                      aria-label="Slet">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zm3-9h2v8H9v-8zm4 0h2v8h-2v-8zm2.5-6-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="subcategory"
+             th:each="subcategory : ${subcategories}"
+             th:if="${subcategory.category.id == category.id}">
+          <span th:text="${subcategory.name}"></span>
+
+          <div class="subcategory-actions">
+            <a th:href="@{/subcategories/{id}/edit(id=${subcategory.id})}"
+               class="icon-button edit-icon"
+               title="Rediger"
+               aria-label="Rediger">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.96 1.96 3.75 3.75 2.13-1.79z"/>
+              </svg>
+            </a>
+
+            <form th:action="@{/subcategories/{id}/delete(id=${subcategory.id})}"
+                  method="post">
+              <button type="submit"
+                      class="icon-button delete-icon"
+                      title="Slet"
+                      aria-label="Slet">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zm3-9h2v8H9v-8zm4 0h2v8h-2v-8zm2.5-6-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

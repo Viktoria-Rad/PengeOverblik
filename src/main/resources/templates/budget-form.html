@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="da" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opret budget - PengeOverblik</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <h1>Penge<span>Overblik</span></h1>
+
+    <nav>
+      <a href="/">Overblik</a>
+      <a href="/transactions">Transaktioner</a>
+      <a class="active" href="/budget">Budget</a>
+      <a href="/recurring-payments">Faste betalinger</a>
+      <a href="/categories">Kategorier</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+
+    <header>
+      <div>
+        <h2>Opret budget</h2>
+        <p>Opret et budget for en måned</p>
+      </div>
+    </header>
+
+    <div class="panel">
+
+      <form action="/budget" method="post"
+            class="transaction-form">
+
+        <label for="amount">Beløb</label>
+        <input type="number"
+               id="amount"
+               name="amount"
+               step="0.01"
+               min="0.01"
+               required>
+
+        <label for="month">Måned</label>
+        <select id="month" name="month" required>
+          <option value="1" th:selected="${month == 1}">Januar</option>
+          <option value="2" th:selected="${month == 2}">Februar</option>
+          <option value="3" th:selected="${month == 3}">Marts</option>
+          <option value="4" th:selected="${month == 4}">April</option>
+          <option value="5" th:selected="${month == 5}">Maj</option>
+          <option value="6" th:selected="${month == 6}">Juni</option>
+          <option value="7" th:selected="${month == 7}">Juli</option>
+          <option value="8" th:selected="${month == 8}">August</option>
+          <option value="9" th:selected="${month == 9}">September</option>
+          <option value="10" th:selected="${month == 10}">Oktober</option>
+          <option value="11" th:selected="${month == 11}">November</option>
+          <option value="12" th:selected="${month == 12}">December</option>
+        </select>
+
+        <label for="year">År</label>
+        <input type="number"
+               id="year"
+               name="year"
+               th:value="${year}"
+               required>
+
+        <label for="subcategoryId">Underkategori</label>
+        <select id="subcategoryId"
+                name="subcategoryId"
+                required>
+
+          <option th:each="subcategory : ${subcategories}"
+                  th:value="${subcategory.id}"
+                  th:text="${subcategory.name}">
+          </option>
+
+        </select>
+
+        <div class="form-actions">
+
+          <a href="/budget"
+             class="cancel-button">
+            Annuller
+          </a>
+
+          <button type="submit"
+                  class="add-button">
+            Gem budget
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>

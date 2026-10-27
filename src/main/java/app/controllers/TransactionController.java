@@ -31,7 +31,10 @@ public class TransactionController {
 
     public void getAll(Context ctx) {
         try {
-            List<Transaction> transactions = transactionDAO.findByUserId(1);
+            Integer userId = ctx.attribute("userId");
+
+            List<Transaction> transactions =
+                    transactionDAO.findByUserId(userId);
 
             List<TransactionDTO> transactionDTOs = transactions.stream()
                     .map(transaction -> new TransactionDTO(
@@ -94,7 +97,8 @@ public class TransactionController {
             CreateTransactionDTO dto =
                     ctx.bodyAsClass(CreateTransactionDTO.class);
 
-            User user = userDAO.findById(1);
+            Integer userId = ctx.attribute("userId");
+            User user = userDAO.findById(userId);
             Subcategory subcategory =
                     subcategoryDAO.findById(dto.subcategoryId());
 
@@ -153,10 +157,21 @@ public class TransactionController {
                 return;
             }
 
+            Integer userId = ctx.attribute("userId");
+
+            if (!existing.getUser().getId().equals(userId)) {
+                ctx.status(404);
+                ctx.json(Map.of(
+                        "message", "Transaktionen blev ikke fundet"
+                ));
+                return;
+            }
+
             CreateTransactionDTO dto =
                     ctx.bodyAsClass(CreateTransactionDTO.class);
 
-            User user = userDAO.findById(1);
+            User user = userDAO.findById(userId);
+
             Subcategory subcategory =
                     subcategoryDAO.findById(dto.subcategoryId());
 

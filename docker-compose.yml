@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    container_name: pengeoverblik-app
+    ports:
+      - "7070:7070"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16.2
+    container_name: pengeoverblik-db
+    environment:
+      POSTGRES_DB: pengeoverblik
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pengeoverblik-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pengeoverblik"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pengeoverblik-data:

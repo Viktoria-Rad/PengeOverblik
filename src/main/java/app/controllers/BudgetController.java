@@ -30,6 +30,8 @@ public class BudgetController {
     }
 
     public void getAll(Context ctx) {
+        Integer userId = ctx.attribute("userId");
+
         int month = ctx.queryParam("month") != null
                 ? Integer.parseInt(ctx.queryParam("month"))
                 : 8;
@@ -39,7 +41,7 @@ public class BudgetController {
                 : 2026;
 
         List<Budget> budgets =
-                budgetDAO.findAllByUserAndMonth(1, month, year);
+                budgetDAO.findAllByUserAndMonth(userId, month, year);
 
         List<BudgetDTO> budgetDTOs = budgets.stream()
                 .map(budget -> new BudgetDTO(
@@ -59,6 +61,7 @@ public class BudgetController {
             int id = Integer.parseInt(ctx.pathParam("id"));
 
             Budget budget = budgetDAO.findById(id);
+            Integer userId = ctx.attribute("userId");
 
             if (budget == null) {
                 ctx.status(404);
@@ -117,7 +120,8 @@ public class BudgetController {
                 return;
             }
 
-            User user = userDAO.findById(1);
+            Integer userId = ctx.attribute("userId");
+            User user = userDAO.findById(userId);
             Subcategory subcategory =
                     subcategoryDAO.findById(dto.subcategoryId());
 
@@ -131,7 +135,7 @@ public class BudgetController {
 
             Budget existingBudget =
                     budgetDAO.findByUserMonthAndSubcategory(
-                            1,
+                            userId,
                             dto.month(),
                             dto.year(),
                             dto.subcategoryId()
@@ -181,6 +185,7 @@ public class BudgetController {
             int id = Integer.parseInt(ctx.pathParam("id"));
 
             Budget existing = budgetDAO.findById(id);
+            Integer userId = ctx.attribute("userId");
 
             if (existing == null) {
                 ctx.status(404);
@@ -260,6 +265,7 @@ public class BudgetController {
             int id = Integer.parseInt(ctx.pathParam("id"));
 
             Budget existing = budgetDAO.findById(id);
+            Integer userId = ctx.attribute("userId");
 
             if (existing == null) {
                 ctx.status(404);

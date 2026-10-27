@@ -1,4 +1,5 @@
 package app.entities;
+
 import app.enums.CategoryType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,4 +23,8 @@ public class Category {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private CategoryType type;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

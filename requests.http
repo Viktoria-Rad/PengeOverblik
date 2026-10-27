@@ -55,3 +55,253 @@ Content-Type: application/json
 
 ### Delete budget
 DELETE http://localhost:7070/api/budgets/5
+
+
+###Content-Type: application/json
+POST http://localhost:7070/auth/register
+
+
+{
+  "name": "Anna",
+  "email": "anna@test.dk",
+  "password": "123456"
+}
+
+###Content-Type: application/json
+POST http://localhost:7070/auth/login
+
+{
+  "email": "anna@test.dk",
+  "password": "123456"
+}
+
+###
+GET http://localhost:7070/api/budgets
+
+###
+GET http://localhost:7070/api/budgets
+    Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkyNjk4NjI3LCJleHAiOjE3OTI3MDIyMjd9.-S31voG1dFei17TujNGTH3Wywtnw8UeXi6YIyNimb28
+
+###
+GET http://localhost:7070/api/transactions
+
+
+###
+GET http://localhost:7070/api/transactions
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkyNjk4NjI3LCJleHAiOjE3OTI3MDIyMjd9.-S31voG1dFei17TujNGTH3Wywtnw8UeXi6YIyNimb28
+
+###
+POST http://localhost:7070/api/transactions
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkyNzcwMTM5LCJleHAiOjE3OTI3NzM3Mzl9.jNgjayPM7HIXm_0fxwTbqalBTy5mM6N3DP-JPHzAFmU
+Content-Type: application/json
+
+{
+  "amount": 125.50,
+  "date": "2026-10-22",
+  "type": "EXPENSE",
+  "description": "Test Anna",
+  "subcategoryId": 1
+}
+
+###
+GET http://localhost:7070/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkyNjk4NjI3LCJleHAiOjE3OTI3MDIyMjd9.-S31voG1dFei17TujNGTH3Wywtnw8UeXi6YIyNimb28
+
+###
+GET http://localhost:7070/api/dashboard?month=10&year=2026
+
+###
+GET http://localhost:7070/api/dashboard?month=10&year=2026
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkyNjk4NjI3LCJleHAiOjE3OTI3MDIyMjd9.-S31voG1dFei17TujNGTH3Wywtnw8UeXi6YIyNimb28
+
+###
+GET http://localhost:7070/api/categories
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+POST http://localhost:7070/api/categories
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+Content-Type: application/json
+
+{
+  "name": "Mad",
+  "type": "EXPENSE"
+}
+
+###
+GET http://localhost:7070/api/categories/15
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+PUT http://localhost:7070/api/categories/15
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+Content-Type: application/json
+
+{
+  "name": "Dagligvarer",
+  "type": "EXPENSE"
+}
+
+###
+DELETE http://localhost:7070/api/categories/15
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+GET http://localhost:7070/api/subcategories
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+POST http://localhost:7070/api/subcategories
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+Content-Type: application/json
+
+{
+  "name": "Sko",
+  "category": {
+    "id": 13
+  }
+}
+
+###
+GET http://localhost:7070/api/subcategories/14
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+PUT http://localhost:7070/api/subcategories/14
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+Content-Type: application/json
+
+{
+  "name": "Sko og støvler",
+  "category": {
+    "id": 13
+  }
+}
+
+###
+DELETE http://localhost:7070/api/subcategories/14
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+GET http://localhost:7070/api/recurring-payments
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+POST http://localhost:7070/api/recurring-payments
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+Content-Type: application/json
+
+{
+  "name": "Netflix",
+  "amount": 129.00,
+  "type": "EXPENSE",
+  "frequency": "MONTHLY",
+  "startDate": "2026-10-27",
+  "nextPaymentDate": "2026-11-27",
+  "subcategory": {
+    "id": 13
+  }
+}
+
+###
+GET http://localhost:7070/api/recurring-payments/4
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+PUT http://localhost:7070/api/recurring-payments/4
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+Content-Type: application/json
+
+{
+  "name": "Netflix Premium",
+  "amount": 149.00,
+  "type": "EXPENSE",
+  "frequency": "MONTHLY",
+  "startDate": "2026-10-27",
+  "nextPaymentDate": "2026-11-27",
+  "subcategory": {
+    "id": 13
+  }
+}
+
+###
+DELETE http://localhost:7070/api/recurring-payments/4
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+GET http://localhost:7070/api/transactions
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+
+###
+POST http://localhost:7070/api/transactions
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTE5MzY4LCJleHAiOjE3OTMxMjI5Njh9.TFtBFP0PjT3Fz3towQ6RjXlTL1stxGbBzkZiebITO94
+Content-Type: application/json
+
+{
+  "amount": 75.50,
+  "date": "2026-10-27",
+  "type": "EXPENSE",
+  "description": "Test køb",
+  "subcategoryId": 13
+}
+
+###
+GET http://localhost:7070/api/transactions/27
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+
+###
+PUT http://localhost:7070/api/transactions/27
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+Content-Type: application/json
+
+{
+  "amount": 99.50,
+  "date": "2026-10-27",
+  "type": "EXPENSE",
+  "description": "Test køb opdateret",
+  "subcategoryId": 13
+}
+
+###
+DELETE http://localhost:7070/api/transactions/27
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+
+###
+GET http://localhost:7070/api/budgets
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+
+###
+POST http://localhost:7070/api/budgets
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+Content-Type: application/json
+
+{
+  "amount": 1000.00,
+  "month": 11,
+  "year": 2026,
+  "subcategoryId": 13
+}
+
+###
+GET http://localhost:7070/api/budgets/12
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+
+###
+PUT http://localhost:7070/api/budgets/12
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+Content-Type: application/json
+
+{
+  "amount": 1500.00,
+  "month": 11,
+  "year": 2026,
+  "subcategoryId": 13
+}
+
+###
+DELETE http://localhost:7070/api/budgets/12
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M
+
+###
+GET http://localhost:7070/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbm5hQHRlc3QuZGsiLCJ1c2VySWQiOjQsInJvbGVzIjpbIlVTRVIiXSwiaWF0IjoxNzkzMTI4NzAxLCJleHAiOjE3OTMxMzIzMDF9.s0alchdUGBcULgWRHIEUCKvZYQom6PJmMKthXiy6c8M

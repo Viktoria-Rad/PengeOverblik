@@ -2,7 +2,8 @@
 <html lang="da" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title>Transaktioner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaktioner - PengeOverblik</title>
   <link rel="stylesheet" href="/css/dashboard.css">
 </head>
 <body>
@@ -10,7 +11,7 @@
   <aside class="sidebar">
     <h1>Penge<span>Overblik</span></h1>
     <nav>
-      <a th:href="@{/(month=${month}, year=${year})}">Overblik</a>
+      <a th:href="@{/dashboard(month=${month}, year=${year})}">Overblik</a>
       <a class="active" th:href="@{/transactions(month=${month}, year=${year})}">Transaktioner</a>
       <a th:href="@{/budget(month=${month}, year=${year})}">Budget</a>
       <a href="/recurring-payments">Faste betalinger</a>
@@ -24,7 +25,10 @@
         <h2>Transaktioner</h2>
         <p>Alle dine registrerede transaktioner</p>
       </div>
-      <a href="/transactions/new" class="add-button">+ Tilføj transaktion</a>
+
+      <a href="/transactions/new" class="add-button">
+        + Tilføj transaktion
+      </a>
     </header>
 
     <p class="error-message"
@@ -73,7 +77,6 @@
     <div class="panel">
       <div class="transaction-row"
            th:each="transaction : ${transactions}">
-
         <div>
           <strong th:text="${transaction.description}"></strong>
           <p th:text="${transaction.date}"></p>
@@ -159,6 +162,5 @@
 
   updateCurrency(savedCurrency);
 </script>
-
 </body>
 </html>

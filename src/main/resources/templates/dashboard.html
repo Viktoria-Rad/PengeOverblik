@@ -7,13 +7,14 @@
     <link rel="stylesheet" href="/css/dashboard.css">
 </head>
 <body>
+
 <button class="menu-toggle" onclick="toggleMenu()">☰</button>
 
 <div class="layout">
     <aside class="sidebar">
         <h1>Penge<span>Overblik</span></h1>
         <nav>
-            <a class="active" th:href="@{/(month=${month}, year=${year})}">Overblik</a>
+            <a class="active" th:href="@{/dashboard(month=${month}, year=${year})}">Overblik</a>
             <a th:href="@{/transactions(month=${month}, year=${year})}">Transaktioner</a>
             <a th:href="@{/budget(month=${month}, year=${year})}">Budget</a>
             <a href="/recurring-payments">Faste betalinger</a>
@@ -46,7 +47,7 @@
         </header>
 
         <div class="panel month-selector">
-            <form action="/" method="get">
+            <form action="/dashboard" method="get">
                 <select name="month">
                     <option value="1" th:selected="${month == 1}">Januar</option>
                     <option value="2" th:selected="${month == 2}">Februar</option>
@@ -81,8 +82,8 @@
                 <p>Til rådighed</p>
                 <h3>
                     <span class="money-amount"
-                          th:attr="data-amount=${dashboard.remainingAmount}"
-                          th:text="${#numbers.formatDecimal(dashboard.remainingAmount,1,'POINT',2,'COMMA')}"></span>
+                          th:attr="data-amount=${budgetRemaining}"
+                          th:text="${#numbers.formatDecimal(budgetRemaining,1,'POINT',2,'COMMA')}"></span>
                     <span class="currency-label">kr.</span>
                 </h3>
                 <small>denne måned</small>
@@ -244,9 +245,7 @@
                     </div>
                 </div>
 
-                <p th:if="${payments.isEmpty()}">
-                    Ingen kommende betalinger.
-                </p>
+                <p th:if="${payments.isEmpty()}">Ingen kommende betalinger.</p>
             </div>
         </section>
 
@@ -315,7 +314,6 @@
         document.querySelectorAll('.money-amount').forEach(element => {
             const originalAmount = Number(element.dataset.amount);
             const convertedAmount = originalAmount * rate;
-
             element.textContent = formatMoney(convertedAmount);
         });
 

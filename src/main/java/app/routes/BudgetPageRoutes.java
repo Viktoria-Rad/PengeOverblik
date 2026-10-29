@@ -9,12 +9,12 @@ public class BudgetPageRoutes {
 
     private final BudgetPageController budgetPageController;
 
-    public void register(Javalin app) {
-        app.get("/budget", budgetPageController::showBudgets);
-        app.get("/budget/new", budgetPageController::showCreateForm);
-        app.post("/budget", budgetPageController::create);
-        app.get("/budget/{id}/edit", budgetPageController::showEditForm);
-        app.post("/budget/{id}/edit", budgetPageController::update);
-        app.post("/budget/{id}/delete", budgetPageController::delete);
+    public void register(Javalin app){
+        app.get("/budget",budgetPageController::showBudgets);
+        app.get("/budget/new",budgetPageController::showCreateForm);
+        app.post("/budget",budgetPageController::createBudget);
+        app.get("/budget/{id}/edit",budgetPageController::showEditForm);
+        app.post("/budget/{id}/edit",budgetPageController::updateBudget);
+        app.post("/budget/{id}/delete",budgetPageController::deleteBudget);
     }
 }

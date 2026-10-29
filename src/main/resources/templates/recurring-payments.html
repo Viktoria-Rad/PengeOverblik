@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faste betalinger - PengeOverblik</title>
     <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        .page-header{display:flex;justify-content:space-between;align-items:center;gap:20px}
+        .header-right{display:flex;align-items:center;gap:24px}
+        .user-info{display:flex;align-items:center;gap:16px;font-size:15px;white-space:nowrap}
+        .user-info span{color:#333}
+        .logout-link{text-decoration:none;font-weight:600;color:#555}
+        .logout-link:hover{text-decoration:underline}
+    </style>
 </head>
 <body>
 <div class="layout">
@@ -20,29 +28,31 @@
     </aside>
 
     <main class="content">
-        <header>
+        <header class="page-header">
             <div>
                 <h2>Faste betalinger</h2>
                 <p>Dine faste og kommende betalinger</p>
             </div>
 
-            <a href="/recurring-payments/new" class="add-button">
-                + Tilføj fast betaling
-            </a>
+            <div class="header-right">
+                <a href="/recurring-payments/new" class="add-button">+ Tilføj fast betaling</a>
+
+                <div class="user-info">
+                    <span>Hej, <strong th:text="${userName}">Bruger</strong> 👋</span>
+                    <a href="/logout" class="logout-link" onclick="localStorage.removeItem('token')">Log ud</a>
+                </div>
+            </div>
         </header>
 
         <div class="panel">
             <div th:if="${!payments.isEmpty()}">
-
                 <div class="payment" th:each="payment : ${payments}">
                     <div>
                         <strong th:text="${payment.name}"></strong>
-
                         <p>
                             Næste betaling:
                             <span th:text="${#temporals.format(payment.nextPaymentDate, 'dd. MMMM yyyy')}"></span>
                         </p>
-
                         <p>
                             Frekvens:
                             <span th:text="${payment.frequency}"></span>
@@ -63,8 +73,7 @@
                             </svg>
                         </a>
 
-                        <form th:action="@{/recurring-payments/{id}/delete(id=${payment.id})}"
-                              method="post">
+                        <form th:action="@{/recurring-payments/{id}/delete(id=${payment.id})}" method="post">
                             <button type="submit"
                                     class="icon-button delete-icon"
                                     title="Slet"
@@ -76,7 +85,6 @@
                         </form>
                     </div>
                 </div>
-
             </div>
 
             <p th:if="${payments.isEmpty()}">

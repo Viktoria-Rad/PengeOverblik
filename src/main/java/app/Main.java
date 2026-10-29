@@ -45,7 +45,8 @@ public class Main {
                 financeService,
                 recurringPaymentDAO,
                 budgetDAO,
-                transactionDAO
+                transactionDAO,
+                userDAO
         );
 
         RecurringPaymentController recurringPaymentController=new RecurringPaymentController(

@@ -23,193 +23,124 @@ public class RecurringPaymentPageController {
     private final UserDAO userDAO;
     private final SubcategoryDAO subcategoryDAO;
 
-    public void showPayments(Context ctx) {
+    public void showPayments(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        List<RecurringPayment> payments=recurringPaymentDAO.findByUserId(userId);
 
-        Integer userId = ctx.attribute("userId");
-
-        List<RecurringPayment> payments =
-                recurringPaymentDAO.findByUserId(userId);
-
-        ctx.render(
-                "/templates/recurring-payments.html",
-                Map.of("payments", payments)
-        );
+        ctx.render("/templates/recurring-payments.html",Map.of(
+                "payments",payments,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void showCreateForm(Context ctx) {
+    public void showCreateForm(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        List<Subcategory> subcategories=subcategoryDAO.findByUserId(userId);
 
-        Integer userId = ctx.attribute("userId");
-
-        List<Subcategory> subcategories =
-                subcategoryDAO.findByUserId(userId);
-
-        ctx.render(
-                "/templates/recurring-payment-form.html",
-                Map.of("subcategories", subcategories)
-        );
+        ctx.render("/templates/recurring-payment-form.html",Map.of(
+                "subcategories",subcategories,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void create(Context ctx) {
+    public void create(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        String name=ctx.formParam("name");
+        BigDecimal amount=new BigDecimal(ctx.formParam("amount"));
 
-        Integer userId = ctx.attribute("userId");
-
-        String name = ctx.formParam("name");
-
-        BigDecimal amount =
-                new BigDecimal(ctx.formParam("amount"));
-
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
             ctx.redirect("/recurring-payments/new?error=amount");
             return;
         }
 
-        TransactionType type =
-                TransactionType.valueOf(ctx.formParam("type"));
+        TransactionType type=TransactionType.valueOf(ctx.formParam("type"));
+        Frequency frequency=Frequency.valueOf(ctx.formParam("frequency"));
+        LocalDate startDate=LocalDate.parse(ctx.formParam("startDate"));
+        LocalDate nextPaymentDate=LocalDate.parse(ctx.formParam("nextPaymentDate"));
 
-        Frequency frequency =
-                Frequency.valueOf(ctx.formParam("frequency"));
-
-        LocalDate startDate =
-                LocalDate.parse(ctx.formParam("startDate"));
-
-        LocalDate nextPaymentDate =
-                LocalDate.parse(ctx.formParam("nextPaymentDate"));
-
-        if (nextPaymentDate.isBefore(startDate)) {
+        if(nextPaymentDate.isBefore(startDate)){
             ctx.redirect("/recurring-payments/new?error=date");
             return;
         }
 
-        Integer subcategoryId =
-                Integer.parseInt(ctx.formParam("subcategoryId"));
+        Integer subcategoryId=Integer.parseInt(ctx.formParam("subcategoryId"));
+        User user=userDAO.findById(userId);
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(subcategoryId,userId);
 
-        User user =
-                userDAO.findById(userId);
-
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        subcategoryId,
-                        userId
-                );
-
-        if (user == null || subcategory == null) {
-            ctx.status(404);
-            ctx.result("Bruger eller underkategori blev ikke fundet");
+        if(user==null||subcategory==null){
+            ctx.status(404).result("Bruger eller underkategori blev ikke fundet");
             return;
         }
 
-        RecurringPayment payment =
-                RecurringPayment.builder()
-                        .name(name)
-                        .amount(amount)
-                        .type(type)
-                        .frequency(frequency)
-                        .startDate(startDate)
-                        .nextPaymentDate(nextPaymentDate)
-                        .user(user)
-                        .subcategory(subcategory)
-                        .build();
+        RecurringPayment payment=RecurringPayment.builder()
+                .name(name)
+                .amount(amount)
+                .type(type)
+                .frequency(frequency)
+                .startDate(startDate)
+                .nextPaymentDate(nextPaymentDate)
+                .user(user)
+                .subcategory(subcategory)
+                .build();
 
         recurringPaymentDAO.create(payment);
-
         ctx.redirect("/recurring-payments");
     }
 
-    public void showEditForm(Context ctx) {
+    public void showEditForm(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        RecurringPayment payment=recurringPaymentDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        RecurringPayment payment =
-                recurringPaymentDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (payment == null) {
-            ctx.status(404);
-            ctx.result("Betalingen blev ikke fundet");
+        if(payment==null){
+            ctx.status(404).result("Betalingen blev ikke fundet");
             return;
         }
 
-        List<Subcategory> subcategories =
-                subcategoryDAO.findByUserId(userId);
+        List<Subcategory> subcategories=subcategoryDAO.findByUserId(userId);
 
-        ctx.render(
-                "/templates/recurring-payment-edit.html",
-                Map.of(
-                        "payment", payment,
-                        "subcategories", subcategories
-                )
-        );
+        ctx.render("/templates/recurring-payment-edit.html",Map.of(
+                "payment",payment,
+                "subcategories",subcategories,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void update(Context ctx) {
+    public void update(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        RecurringPayment payment=recurringPaymentDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        RecurringPayment payment =
-                recurringPaymentDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (payment == null) {
-            ctx.status(404);
-            ctx.result("Betalingen blev ikke fundet");
+        if(payment==null){
+            ctx.status(404).result("Betalingen blev ikke fundet");
             return;
         }
 
-        String name = ctx.formParam("name");
+        String name=ctx.formParam("name");
+        BigDecimal amount=new BigDecimal(ctx.formParam("amount"));
 
-        BigDecimal amount =
-                new BigDecimal(ctx.formParam("amount"));
-
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            ctx.redirect(
-                    "/recurring-payments/" + id + "/edit?error=amount"
-            );
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
+            ctx.redirect("/recurring-payments/"+id+"/edit?error=amount");
             return;
         }
 
-        TransactionType type =
-                TransactionType.valueOf(ctx.formParam("type"));
+        TransactionType type=TransactionType.valueOf(ctx.formParam("type"));
+        Frequency frequency=Frequency.valueOf(ctx.formParam("frequency"));
+        LocalDate startDate=LocalDate.parse(ctx.formParam("startDate"));
+        LocalDate nextPaymentDate=LocalDate.parse(ctx.formParam("nextPaymentDate"));
 
-        Frequency frequency =
-                Frequency.valueOf(ctx.formParam("frequency"));
-
-        LocalDate startDate =
-                LocalDate.parse(ctx.formParam("startDate"));
-
-        LocalDate nextPaymentDate =
-                LocalDate.parse(ctx.formParam("nextPaymentDate"));
-
-        if (nextPaymentDate.isBefore(startDate)) {
-            ctx.redirect(
-                    "/recurring-payments/" + id + "/edit?error=date"
-            );
+        if(nextPaymentDate.isBefore(startDate)){
+            ctx.redirect("/recurring-payments/"+id+"/edit?error=date");
             return;
         }
 
-        Integer subcategoryId =
-                Integer.parseInt(ctx.formParam("subcategoryId"));
+        Integer subcategoryId=Integer.parseInt(ctx.formParam("subcategoryId"));
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(subcategoryId,userId);
 
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        subcategoryId,
-                        userId
-                );
-
-        if (subcategory == null) {
-            ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
+        if(subcategory==null){
+            ctx.status(404).result("Underkategorien blev ikke fundet");
             return;
         }
 
@@ -222,30 +153,25 @@ public class RecurringPaymentPageController {
         payment.setSubcategory(subcategory);
 
         recurringPaymentDAO.update(payment);
-
         ctx.redirect("/recurring-payments");
     }
 
-    public void delete(Context ctx) {
+    public void delete(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        boolean deleted=recurringPaymentDAO.deleteByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        boolean deleted =
-                recurringPaymentDAO.deleteByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (!deleted) {
-            ctx.status(404);
-            ctx.result("Betalingen blev ikke fundet");
+        if(!deleted){
+            ctx.status(404).result("Betalingen blev ikke fundet");
             return;
         }
 
         ctx.redirect("/recurring-payments");
+    }
+
+    private String getUserName(Integer userId){
+        User user=userDAO.findById(userId);
+        return user!=null?user.getName():"Bruger";
     }
 }

@@ -22,86 +22,60 @@ public class TransactionPageController {
     private final UserDAO userDAO;
     private final SubcategoryDAO subcategoryDAO;
 
-    public void showTransactions(Context ctx) {
+    public void showTransactions(Context ctx){
+        Integer userId=ctx.attribute("userId");
 
-        Integer userId = ctx.attribute("userId");
+        Integer month=ctx.queryParam("month")!=null
+                ?Integer.parseInt(ctx.queryParam("month"))
+                :LocalDate.now().getMonthValue();
 
-        Integer month = ctx.queryParam("month") != null
-                ? Integer.parseInt(ctx.queryParam("month"))
-                : LocalDate.now().getMonthValue();
+        Integer year=ctx.queryParam("year")!=null
+                ?Integer.parseInt(ctx.queryParam("year"))
+                :LocalDate.now().getYear();
 
-        Integer year = ctx.queryParam("year") != null
-                ? Integer.parseInt(ctx.queryParam("year"))
-                : LocalDate.now().getYear();
+        List<Transaction> transactions=transactionDAO.findByUserAndMonth(userId,month,year);
 
-        List<Transaction> transactions =
-                transactionDAO.findByUserAndMonth(
-                        userId,
-                        month,
-                        year
-                );
-
-        ctx.render(
-                "/templates/transactions.html",
-                Map.of(
-                        "transactions", transactions,
-                        "month", month,
-                        "year", year
-                )
-        );
+        ctx.render("/templates/transactions.html",Map.of(
+                "transactions",transactions,
+                "month",month,
+                "year",year,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void showCreateForm(Context ctx) {
+    public void showCreateForm(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        List<Subcategory> subcategories=subcategoryDAO.findByUserId(userId);
 
-        Integer userId = ctx.attribute("userId");
-
-        List<Subcategory> subcategories =
-                subcategoryDAO.findByUserId(userId);
-
-        ctx.render(
-                "/templates/transaction-form.html",
-                Map.of("subcategories", subcategories)
-        );
+        ctx.render("/templates/transaction-form.html",Map.of(
+                "subcategories",subcategories,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void create(Context ctx) {
+    public void create(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        String description=ctx.formParam("description");
+        BigDecimal amount=new BigDecimal(ctx.formParam("amount"));
 
-        Integer userId = ctx.attribute("userId");
-
-        String description = ctx.formParam("description");
-
-        BigDecimal amount =
-                new BigDecimal(ctx.formParam("amount"));
-
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
             ctx.redirect("/transactions/new?error=amount");
             return;
         }
 
-        LocalDate date =
-                LocalDate.parse(ctx.formParam("date"));
+        LocalDate date=LocalDate.parse(ctx.formParam("date"));
+        TransactionType type=TransactionType.valueOf(ctx.formParam("type"));
+        Integer subcategoryId=Integer.parseInt(ctx.formParam("subcategoryId"));
 
-        TransactionType type =
-                TransactionType.valueOf(ctx.formParam("type"));
+        User user=userDAO.findById(userId);
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(subcategoryId,userId);
 
-        Integer subcategoryId =
-                Integer.parseInt(ctx.formParam("subcategoryId"));
-
-        User user = userDAO.findById(userId);
-
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        subcategoryId,
-                        userId
-                );
-
-        if (user == null || subcategory == null) {
-            ctx.status(404);
-            ctx.result("Bruger eller underkategori blev ikke fundet");
+        if(user==null||subcategory==null){
+            ctx.status(404).result("Bruger eller underkategori blev ikke fundet");
             return;
         }
 
-        Transaction transaction = Transaction.builder()
+        Transaction transaction=Transaction.builder()
                 .description(description)
                 .amount(amount)
                 .date(date)
@@ -111,93 +85,56 @@ public class TransactionPageController {
                 .build();
 
         transactionDAO.create(transaction);
-
         ctx.redirect("/transactions");
     }
 
-    public void showEditForm(Context ctx) {
+    public void showEditForm(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        Transaction transaction=transactionDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        Transaction transaction =
-                transactionDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (transaction == null) {
-            ctx.status(404);
-            ctx.result("Transaktionen blev ikke fundet");
+        if(transaction==null){
+            ctx.status(404).result("Transaktionen blev ikke fundet");
             return;
         }
 
-        List<Subcategory> subcategories =
-                subcategoryDAO.findByUserId(userId);
+        List<Subcategory> subcategories=subcategoryDAO.findByUserId(userId);
 
-        ctx.render(
-                "/templates/transaction-edit.html",
-                Map.of(
-                        "transaction", transaction,
-                        "subcategories", subcategories
-                )
-        );
+        ctx.render("/templates/transaction-edit.html",Map.of(
+                "transaction",transaction,
+                "subcategories",subcategories,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void update(Context ctx) {
+    public void update(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        Transaction transaction=transactionDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        Transaction transaction =
-                transactionDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (transaction == null) {
-            ctx.status(404);
-            ctx.result("Transaktionen blev ikke fundet");
+        if(transaction==null){
+            ctx.status(404).result("Transaktionen blev ikke fundet");
             return;
         }
 
-        String description =
-                ctx.formParam("description");
+        String description=ctx.formParam("description");
+        BigDecimal amount=new BigDecimal(ctx.formParam("amount"));
 
-        BigDecimal amount =
-                new BigDecimal(ctx.formParam("amount"));
-
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            ctx.redirect(
-                    "/transactions/" + id + "/edit?error=amount"
-            );
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
+            ctx.redirect("/transactions/"+id+"/edit?error=amount");
             return;
         }
 
-        LocalDate date =
-                LocalDate.parse(ctx.formParam("date"));
+        LocalDate date=LocalDate.parse(ctx.formParam("date"));
+        TransactionType type=TransactionType.valueOf(ctx.formParam("type"));
+        Integer subcategoryId=Integer.parseInt(ctx.formParam("subcategoryId"));
 
-        TransactionType type =
-                TransactionType.valueOf(ctx.formParam("type"));
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(subcategoryId,userId);
 
-        Integer subcategoryId =
-                Integer.parseInt(ctx.formParam("subcategoryId"));
-
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        subcategoryId,
-                        userId
-                );
-
-        if (subcategory == null) {
-            ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
+        if(subcategory==null){
+            ctx.status(404).result("Underkategorien blev ikke fundet");
             return;
         }
 
@@ -208,30 +145,25 @@ public class TransactionPageController {
         transaction.setSubcategory(subcategory);
 
         transactionDAO.update(transaction);
-
         ctx.redirect("/transactions");
     }
 
-    public void delete(Context ctx) {
+    public void delete(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        boolean deleted=transactionDAO.deleteByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        boolean deleted =
-                transactionDAO.deleteByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (!deleted) {
-            ctx.status(404);
-            ctx.result("Transaktionen blev ikke fundet");
+        if(!deleted){
+            ctx.status(404).result("Transaktionen blev ikke fundet");
             return;
         }
 
         ctx.redirect("/transactions");
+    }
+
+    private String getUserName(Integer userId){
+        User user=userDAO.findById(userId);
+        return user!=null?user.getName():"Bruger";
     }
 }

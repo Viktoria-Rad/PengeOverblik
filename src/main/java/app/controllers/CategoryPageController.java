@@ -20,248 +20,163 @@ public class CategoryPageController {
     private final SubcategoryDAO subcategoryDAO;
     private final UserDAO userDAO;
 
-    public void showCategories(Context ctx) {
+    public void showCategories(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        List<Category> categories=categoryDAO.findByUserId(userId);
+        List<Subcategory> subcategories=subcategoryDAO.findByUserId(userId);
 
-        Integer userId = ctx.attribute("userId");
-
-        List<Category> categories =
-                categoryDAO.findByUserId(userId);
-
-        List<Subcategory> subcategories =
-                subcategoryDAO.findByUserId(userId);
-
-        ctx.render(
-                "/templates/categories.html",
-                Map.of(
-                        "categories", categories,
-                        "subcategories", subcategories
-                )
-        );
+        ctx.render("/templates/categories.html",Map.of(
+                "categories",categories,
+                "subcategories",subcategories,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void showCreateCategoryForm(Context ctx) {
-        ctx.render("/templates/category-form.html");
+    public void showCreateCategoryForm(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        ctx.render("/templates/category-form.html",Map.of(
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void createCategory(Context ctx) {
+    public void createCategory(Context ctx){
+        String name=ctx.formParam("name");
+        CategoryType type=CategoryType.valueOf(ctx.formParam("type"));
+        Integer userId=ctx.attribute("userId");
+        User user=userDAO.findById(userId);
 
-        String name = ctx.formParam("name");
-
-        CategoryType type =
-                CategoryType.valueOf(ctx.formParam("type"));
-
-        Integer userId = ctx.attribute("userId");
-
-        User user =
-                userDAO.findById(userId);
-
-        Category category = Category.builder()
+        Category category=Category.builder()
                 .name(name)
                 .type(type)
                 .user(user)
                 .build();
 
         categoryDAO.create(category);
-
         ctx.redirect("/categories");
     }
 
-    public void showEditCategoryForm(Context ctx) {
+    public void showEditCategoryForm(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
+        Category category=categoryDAO.findByIdAndUserId(id,userId);
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
-
-        Integer userId =
-                ctx.attribute("userId");
-
-        Category category =
-                categoryDAO.findByIdAndUserId(id, userId);
-
-        if (category == null) {
-            ctx.status(404);
-            ctx.result("Kategorien blev ikke fundet");
+        if(category==null){
+            ctx.status(404).result("Kategorien blev ikke fundet");
             return;
         }
 
-        ctx.render(
-                "/templates/category-edit.html",
-                Map.of("category", category)
-        );
+        ctx.render("/templates/category-edit.html",Map.of(
+                "category",category,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void updateCategory(Context ctx) {
+    public void updateCategory(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
+        Category category=categoryDAO.findByIdAndUserId(id,userId);
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
-
-        Integer userId =
-                ctx.attribute("userId");
-
-        Category category =
-                categoryDAO.findByIdAndUserId(id, userId);
-
-        if (category == null) {
-            ctx.status(404);
-            ctx.result("Kategorien blev ikke fundet");
+        if(category==null){
+            ctx.status(404).result("Kategorien blev ikke fundet");
             return;
         }
 
-        String name =
-                ctx.formParam("name");
-
-        CategoryType type =
-                CategoryType.valueOf(ctx.formParam("type"));
+        String name=ctx.formParam("name");
+        CategoryType type=CategoryType.valueOf(ctx.formParam("type"));
 
         category.setName(name);
         category.setType(type);
 
         categoryDAO.update(category);
-
         ctx.redirect("/categories");
     }
 
-    public void deleteCategory(Context ctx) {
+    public void deleteCategory(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        try{
+            boolean deleted=categoryDAO.deleteByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        try {
-            boolean deleted =
-                    categoryDAO.deleteByIdAndUserId(id, userId);
-
-            if (!deleted) {
-                ctx.status(404);
-                ctx.result("Kategorien blev ikke fundet");
+            if(!deleted){
+                ctx.status(404).result("Kategorien blev ikke fundet");
                 return;
             }
 
             ctx.redirect("/categories");
-
-        } catch (Exception e) {
-            ctx.redirect(
-                    "/categories?categoryError=in-use"
-            );
+        }catch(Exception e){
+            ctx.redirect("/categories?categoryError=in-use");
         }
     }
 
-    public void showCreateSubcategoryForm(Context ctx) {
+    public void showCreateSubcategoryForm(Context ctx){
+        Integer userId=ctx.attribute("userId");
+        List<Category> categories=categoryDAO.findByUserId(userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        List<Category> categories =
-                categoryDAO.findByUserId(userId);
-
-        ctx.render(
-                "/templates/subcategory-form.html",
-                Map.of("categories", categories)
-        );
+        ctx.render("/templates/subcategory-form.html",Map.of(
+                "categories",categories,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void createSubcategory(Context ctx) {
+    public void createSubcategory(Context ctx){
+        String name=ctx.formParam("name");
+        Integer categoryId=Integer.parseInt(ctx.formParam("categoryId"));
+        Integer userId=ctx.attribute("userId");
 
-        String name =
-                ctx.formParam("name");
+        Category category=categoryDAO.findByIdAndUserId(categoryId,userId);
 
-        Integer categoryId =
-                Integer.parseInt(ctx.formParam("categoryId"));
-
-        Integer userId =
-                ctx.attribute("userId");
-
-        Category category =
-                categoryDAO.findByIdAndUserId(
-                        categoryId,
-                        userId
-                );
-
-        if (category == null) {
-            ctx.status(404);
-            ctx.result("Kategorien blev ikke fundet");
+        if(category==null){
+            ctx.status(404).result("Kategorien blev ikke fundet");
             return;
         }
 
-        Subcategory subcategory =
-                Subcategory.builder()
-                        .name(name)
-                        .category(category)
-                        .build();
+        Subcategory subcategory=Subcategory.builder()
+                .name(name)
+                .category(category)
+                .build();
 
         subcategoryDAO.create(subcategory);
-
         ctx.redirect("/categories");
     }
 
-    public void showEditSubcategoryForm(Context ctx) {
+    public void showEditSubcategoryForm(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (subcategory == null) {
-            ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
+        if(subcategory==null){
+            ctx.status(404).result("Underkategorien blev ikke fundet");
             return;
         }
 
-        List<Category> categories =
-                categoryDAO.findByUserId(userId);
+        List<Category> categories=categoryDAO.findByUserId(userId);
 
-        ctx.render(
-                "/templates/subcategory-edit.html",
-                Map.of(
-                        "subcategory", subcategory,
-                        "categories", categories
-                )
-        );
+        ctx.render("/templates/subcategory-edit.html",Map.of(
+                "subcategory",subcategory,
+                "categories",categories,
+                "userName",getUserName(userId)
+        ));
     }
 
-    public void updateSubcategory(Context ctx) {
+    public void updateSubcategory(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (subcategory == null) {
-            ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
+        if(subcategory==null){
+            ctx.status(404).result("Underkategorien blev ikke fundet");
             return;
         }
 
-        String name =
-                ctx.formParam("name");
+        String name=ctx.formParam("name");
+        Integer categoryId=Integer.parseInt(ctx.formParam("categoryId"));
+        Category category=categoryDAO.findByIdAndUserId(categoryId,userId);
 
-        Integer categoryId =
-                Integer.parseInt(ctx.formParam("categoryId"));
-
-        Category category =
-                categoryDAO.findByIdAndUserId(
-                        categoryId,
-                        userId
-                );
-
-        if (category == null) {
-            ctx.status(404);
-            ctx.result("Kategorien blev ikke fundet");
+        if(category==null){
+            ctx.status(404).result("Kategorien blev ikke fundet");
             return;
         }
 
@@ -269,37 +184,29 @@ public class CategoryPageController {
         subcategory.setCategory(category);
 
         subcategoryDAO.update(subcategory);
-
         ctx.redirect("/categories");
     }
 
-    public void deleteSubcategory(Context ctx) {
+    public void deleteSubcategory(Context ctx){
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        try{
+            boolean deleted=subcategoryDAO.deleteByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        try {
-            boolean deleted =
-                    subcategoryDAO.deleteByIdAndUserId(
-                            id,
-                            userId
-                    );
-
-            if (!deleted) {
-                ctx.status(404);
-                ctx.result("Underkategorien blev ikke fundet");
+            if(!deleted){
+                ctx.status(404).result("Underkategorien blev ikke fundet");
                 return;
             }
 
             ctx.redirect("/categories");
-
-        } catch (Exception e) {
-            ctx.redirect(
-                    "/categories?error=in-use"
-            );
+        }catch(Exception e){
+            ctx.redirect("/categories?error=in-use");
         }
+    }
+
+    private String getUserName(Integer userId){
+        User user=userDAO.findById(userId);
+        return user!=null?user.getName():"Bruger";
     }
 }

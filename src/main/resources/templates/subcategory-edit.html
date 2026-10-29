@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rediger underkategori - PengeOverblik</title>
   <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .page-header{display:flex;justify-content:space-between;align-items:center;gap:20px}
+    .user-info{display:flex;align-items:center;gap:16px;font-size:15px;white-space:nowrap}
+    .user-info span{color:#333}
+    .logout-link{text-decoration:none;font-weight:600;color:#555}
+    .logout-link:hover{text-decoration:underline}
+  </style>
 </head>
 <body>
 <div class="layout">
@@ -20,20 +27,21 @@
   </aside>
 
   <main class="content">
-    <header>
+    <header class="page-header">
       <div>
         <h2>Rediger underkategori</h2>
         <p>Ret navn eller hovedkategori</p>
       </div>
+      <div class="user-info">
+        <span>Hej, <strong th:text="${userName}">Bruger</strong> 👋</span>
+        <a href="/logout" class="logout-link" onclick="localStorage.removeItem('token')">Log ud</a>
+      </div>
     </header>
 
     <div class="panel">
-      <form th:action="@{/subcategories/{id}/edit(id=${subcategory.id})}"
-            method="post" class="transaction-form">
-
+      <form th:action="@{/subcategories/{id}/edit(id=${subcategory.id})}" method="post" class="transaction-form">
         <label for="name">Navn</label>
-        <input type="text" id="name" name="name"
-               th:value="${subcategory.name}" required>
+        <input type="text" id="name" name="name" th:value="${subcategory.name}" required>
 
         <label for="categoryId">Hovedkategori</label>
         <select id="categoryId" name="categoryId" required>

@@ -29,7 +29,9 @@ public class BudgetService {
     }
 
     public BigDecimal getTotalBudget(List<Budget> budgets){
-        return budgets.stream().map(Budget::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add);
+        return budgets.stream()
+                .map(Budget::getAmount)
+                .reduce(BigDecimal.ZERO,BigDecimal::add);
     }
 
     public List<Subcategory> getSubcategories(Integer userId){
@@ -38,6 +40,12 @@ public class BudgetService {
 
     public Budget getBudget(Integer id,Integer userId){
         return budgetDAO.findByIdAndUserId(id,userId);
+    }
+
+    public String getUserName(Integer userId){
+        User user=userDAO.findById(userId);
+        if(user==null)throw new NoSuchElementException("Brugeren blev ikke fundet");
+        return user.getName();
     }
 
     public Budget createBudget(Integer userId,BigDecimal amount,Integer month,Integer year,Integer subcategoryId){
@@ -73,7 +81,8 @@ public class BudgetService {
         if(subcategory==null)throw new NoSuchElementException("Underkategorien blev ikke fundet");
 
         Budget duplicate=budgetDAO.findByUserMonthAndSubcategory(userId,month,year,subcategoryId);
-        if(duplicate!=null&&!duplicate.getId().equals(id))throw new IllegalStateException("Budgettet findes allerede");
+        if(duplicate!=null&&!duplicate.getId().equals(id))
+            throw new IllegalStateException("Budgettet findes allerede");
 
         budget.setAmount(amount);
         budget.setMonth(month);
@@ -88,13 +97,20 @@ public class BudgetService {
     }
 
     private void validate(BigDecimal amount,Integer month,Integer year,Integer subcategoryId){
-        if(amount==null||amount.compareTo(BigDecimal.ZERO)<=0)throw new IllegalArgumentException("Beløbet skal være større end 0");
-        if(subcategoryId==null)throw new IllegalArgumentException("Underkategori skal angives");
+        if(amount==null||amount.compareTo(BigDecimal.ZERO)<=0)
+            throw new IllegalArgumentException("Beløbet skal være større end 0");
+
+        if(subcategoryId==null)
+            throw new IllegalArgumentException("Underkategori skal angives");
+
         validateMonthYear(month,year);
     }
 
     private void validateMonthYear(Integer month,Integer year){
-        if(month==null||month<1||month>12)throw new IllegalArgumentException("Måneden skal være mellem 1 og 12");
-        if(year==null||year<2020||year>2100)throw new IllegalArgumentException("Årstallet er ugyldigt");
+        if(month==null||month<1||month>12)
+            throw new IllegalArgumentException("Måneden skal være mellem 1 og 12");
+
+        if(year==null||year<2020||year>2100)
+            throw new IllegalArgumentException("Årstallet er ugyldigt");
     }
 }

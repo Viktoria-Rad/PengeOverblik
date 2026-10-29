@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PengeOverblik</title>
     <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        .page-header{display:flex;justify-content:space-between;align-items:center;gap:20px}
+        .user-info{display:flex;align-items:center;gap:16px;font-size:15px;white-space:nowrap}
+        .user-info span{color:#333}
+        .logout-link{text-decoration:none;font-weight:600;color:#555}
+        .logout-link:hover{text-decoration:underline}
+    </style>
 </head>
 <body>
 <button class="menu-toggle" onclick="toggleMenu()">☰</button>
@@ -22,7 +29,7 @@
     </aside>
 
     <main class="content">
-        <header>
+        <header class="page-header">
             <div>
                 <h2>Mit overblik</h2>
                 <p>
@@ -42,6 +49,10 @@
                     </span>
                     <span th:text="${year}"></span>
                 </p>
+            </div>
+            <div class="user-info">
+                <span>Hej, <strong th:text="${userName}">Bruger</strong> 👋</span>
+                <a href="/logout" class="logout-link" onclick="localStorage.removeItem('token')">Log ud</a>
             </div>
         </header>
 
@@ -64,6 +75,7 @@
                 <input type="number" name="year" th:value="${year}">
                 <button type="submit" class="add-button">Vis</button>
             </form>
+
             <div class="currency-selector">
                 <label for="currency">Valuta:</label>
                 <select id="currency">
@@ -119,10 +131,12 @@
                 </div>
                 <span class="chart-period">Sidste 6 måneder</span>
             </div>
+
             <div class="chart-legend">
                 <div><span class="legend-dot income-dot"></span>Indkomst</div>
                 <div><span class="legend-dot expense-dot"></span>Udgifter</div>
             </div>
+
             <div class="chart-container">
                 <canvas id="financeChart"></canvas>
             </div>
@@ -131,6 +145,7 @@
         <section class="bottom">
             <div class="panel">
                 <h3>Budget</h3>
+
                 <div th:if="${!budgets.isEmpty()}">
                     <div class="budget-info">
                         <p>Samlet budget:
@@ -139,12 +154,14 @@
                                 <span class="currency-label">kr.</span>
                             </strong>
                         </p>
+
                         <p>Brugt:
                             <strong>
                                 <span class="money-amount" th:attr="data-amount=${dashboard.totalExpenses}" th:text="${#numbers.formatDecimal(dashboard.totalExpenses,1,'POINT',2,'COMMA')}"></span>
                                 <span class="currency-label">kr.</span>
                             </strong>
                         </p>
+
                         <p>Tilbage:
                             <strong>
                                 <span class="money-amount" th:attr="data-amount=${budgetRemaining}" th:text="${#numbers.formatDecimal(budgetRemaining,1,'POINT',2,'COMMA')}"></span>
@@ -163,69 +180,81 @@
                             <div class="budget-item-header">
                                 <strong th:text="${item.subcategoryName}"></strong>
                                 <span>
-                                    <span class="money-amount" th:attr="data-amount=${item.spentAmount}" th:text="${#numbers.formatDecimal(item.spentAmount,1,'POINT',2,'COMMA')}"></span>
-                                    /
+                                    <span class="money-amount" th:attr="data-amount=${item.spentAmount}" th:text="${#numbers.formatDecimal(item.spentAmount,1,'POINT',2,'COMMA')}"></span> /
                                     <span class="money-amount" th:attr="data-amount=${item.budgetAmount}" th:text="${#numbers.formatDecimal(item.budgetAmount,1,'POINT',2,'COMMA')}"></span>
                                     <span class="currency-label">kr.</span>
                                 </span>
                             </div>
+
                             <div class="category-bar-background">
                                 <div class="category-bar" th:style="'width:'+${item.percentage>100?100:item.percentage}+'%'"></div>
                             </div>
-                            <small>Tilbage:
+
+                            <small>
+                                Tilbage:
                                 <span class="money-amount" th:attr="data-amount=${item.remainingAmount}" th:text="${#numbers.formatDecimal(item.remainingAmount,1,'POINT',2,'COMMA')}"></span>
                                 <span class="currency-label">kr.</span>
                             </small>
                         </div>
                     </div>
                 </div>
+
                 <p th:if="${budgets.isEmpty()}">Der er ikke oprettet et budget for denne måned.</p>
             </div>
 
             <div class="panel">
                 <h3>Kommende betalinger</h3>
+
                 <div th:if="${!payments.isEmpty()}">
                     <div class="payment" th:each="payment:${payments}">
                         <div>
                             <strong th:text="${payment.name}"></strong>
-                            <p>Næste betaling:
+                            <p>
+                                Næste betaling:
                                 <span th:text="${#temporals.format(payment.nextPaymentDate,'dd. MMMM yyyy')}"></span>
                             </p>
                         </div>
+
                         <strong>
                             <span class="money-amount" th:attr="data-amount=${payment.amount}" th:text="${#numbers.formatDecimal(payment.amount,1,'POINT',2,'COMMA')}"></span>
                             <span class="currency-label">kr.</span>
                         </strong>
                     </div>
                 </div>
+
                 <p th:if="${payments.isEmpty()}">Ingen kommende betalinger.</p>
             </div>
         </section>
 
         <div class="panel category-expenses">
             <h3>Udgifter pr. kategori</h3>
+
             <div th:if="${!expensesByCategory.isEmpty()}">
                 <div class="category-expense" th:each="expense:${expensesByCategory}">
                     <div class="category-expense-name">
                         <span th:text="${expense.categoryName}"></span>
                     </div>
+
                     <div class="category-expense-amount">
                         <strong>
                             <span class="money-amount" th:attr="data-amount=${expense.amount}" th:text="${#numbers.formatDecimal(expense.amount,1,'POINT',2,'COMMA')}"></span>
                             <span class="currency-label">kr.</span>
                         </strong>
                     </div>
+
                     <div class="category-bar-background">
                         <div class="category-bar" th:style="'width:'+${expense.percentage}+'%'"></div>
                     </div>
                 </div>
             </div>
+
             <p th:if="${expensesByCategory.isEmpty()}">Ingen udgifter registreret denne måned.</p>
         </div>
     </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script th:inline="javascript">
     const monthlyFinanceData=/*[[${monthlyFinanceOverview}]]*/[];
     const chartLabels=monthlyFinanceData.map(item=>item.monthName);
@@ -316,5 +345,6 @@
     currencySelect.addEventListener('change',()=>updateCurrency(currencySelect.value));
     updateCurrency(savedCurrency);
 </script>
+
 </body>
 </html>

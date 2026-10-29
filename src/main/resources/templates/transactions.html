@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Transaktioner - PengeOverblik</title>
   <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .page-header{display:flex;justify-content:space-between;align-items:center;gap:20px}
+    .header-right{display:flex;align-items:center;gap:24px}
+    .user-info{display:flex;align-items:center;gap:16px;font-size:15px;white-space:nowrap}
+    .user-info span{color:#333}
+    .logout-link{text-decoration:none;font-weight:600;color:#555}
+    .logout-link:hover{text-decoration:underline}
+  </style>
 </head>
 <body>
 <div class="layout">
@@ -20,19 +28,23 @@
   </aside>
 
   <main class="content">
-    <header>
+    <header class="page-header">
       <div>
         <h2>Transaktioner</h2>
         <p>Alle dine registrerede transaktioner</p>
       </div>
 
-      <a href="/transactions/new" class="add-button">
-        + Tilføj transaktion
-      </a>
+      <div class="header-right">
+        <a href="/transactions/new" class="add-button">+ Tilføj transaktion</a>
+
+        <div class="user-info">
+          <span>Hej, <strong th:text="${userName}">Bruger</strong> 👋</span>
+          <a href="/logout" class="logout-link" onclick="localStorage.removeItem('token')">Log ud</a>
+        </div>
+      </div>
     </header>
 
-    <p class="error-message"
-       th:if="${param.error != null and param.error[0] == 'amount'}">
+    <p class="error-message" th:if="${param.error != null and param.error[0] == 'amount'}">
       Beløbet skal være større end 0.
     </p>
 
@@ -53,13 +65,7 @@
           <option value="12" th:selected="${month == 12}">December</option>
         </select>
 
-        <input type="number"
-               name="year"
-               th:value="${year}"
-               min="2000"
-               max="2100"
-               required>
-
+        <input type="number" name="year" th:value="${year}" min="2000" max="2100" required>
         <button type="submit" class="add-button">Vis</button>
       </form>
 
@@ -75,8 +81,7 @@
     </div>
 
     <div class="panel">
-      <div class="transaction-row"
-           th:each="transaction : ${transactions}">
+      <div class="transaction-row" th:each="transaction : ${transactions}">
         <div>
           <strong th:text="${transaction.description}"></strong>
           <p th:text="${transaction.date}"></p>
@@ -84,10 +89,10 @@
 
         <div class="transaction-actions">
           <strong>
-                        <span class="transaction-amount"
-                              th:attr="data-amount=${transaction.amount}"
-                              th:text="${#numbers.formatDecimal(transaction.amount,1,'POINT',2,'COMMA')}">
-                        </span>
+            <span class="transaction-amount"
+                  th:attr="data-amount=${transaction.amount}"
+                  th:text="${#numbers.formatDecimal(transaction.amount,1,'POINT',2,'COMMA')}">
+            </span>
             <span class="currency-label">kr.</span>
           </strong>
 
@@ -100,8 +105,7 @@
             </svg>
           </a>
 
-          <form th:action="@{/transactions/{id}/delete(id=${transaction.id})}"
-                method="post">
+          <form th:action="@{/transactions/{id}/delete(id=${transaction.id})}" method="post">
             <button type="submit"
                     class="icon-button delete-icon"
                     title="Slet"
@@ -118,48 +122,41 @@
 </div>
 
 <script>
-  const currencySelect = document.getElementById('currency');
+  const currencySelect=document.getElementById('currency');
+  const currencySymbols={DKK:'kr.',EUR:'€',USD:'$',UAH:'₴'};
+  const savedCurrency=localStorage.getItem('currency')||'DKK';
+  currencySelect.value=savedCurrency;
 
-  const currencySymbols = {
-    DKK: 'kr.',
-    EUR: '€',
-    USD: '$',
-    UAH: '₴'
-  };
+  async function updateCurrency(currency){
+    localStorage.setItem('currency',currency);
+    let rate=1;
 
-  const savedCurrency = localStorage.getItem('currency') || 'DKK';
-  currencySelect.value = savedCurrency;
-
-  async function updateCurrency(currency) {
-    localStorage.setItem('currency', currency);
-
-    let rate = 1;
-
-    if (currency !== 'DKK') {
-      const response = await fetch(`/api/currency?to=${currency}`);
-      const data = await response.json();
-      rate = Number(data.rate);
+    if(currency!=='DKK'){
+      try{
+        const response=await fetch(`/api/currency?to=${currency}`);
+        if(!response.ok)throw new Error('Kunne ikke hente valutakurs');
+        const data=await response.json();
+        rate=Number(data.rate);
+      }catch(error){
+        console.error('Valutafejl:',error);
+        rate=1;
+      }
     }
 
-    document.querySelectorAll('.transaction-amount').forEach(element => {
-      const originalAmount = Number(element.dataset.amount);
-      const convertedAmount = originalAmount * rate;
-
-      element.textContent = new Intl.NumberFormat('da-DK', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(convertedAmount);
+    document.querySelectorAll('.transaction-amount').forEach(element=>{
+      const originalAmount=Number(element.dataset.amount);
+      element.textContent=new Intl.NumberFormat('da-DK',{
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+      }).format(originalAmount*rate);
     });
 
-    document.querySelectorAll('.currency-label').forEach(label => {
-      label.textContent = currencySymbols[currency];
+    document.querySelectorAll('.currency-label').forEach(label=>{
+      label.textContent=currencySymbols[currency];
     });
   }
 
-  currencySelect.addEventListener('change', function () {
-    updateCurrency(currencySelect.value);
-  });
-
+  currencySelect.addEventListener('change',()=>updateCurrency(currencySelect.value));
   updateCurrency(savedCurrency);
 </script>
 </body>

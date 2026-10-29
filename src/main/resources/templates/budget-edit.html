@@ -5,6 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rediger budget - PengeOverblik</title>
   <link rel="stylesheet" href="/css/dashboard.css">
+
+  <style>
+    .page-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .user-info{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      font-size:15px;
+    }
+
+    .user-info span{
+      color:#333;
+    }
+
+    .logout-link{
+      text-decoration:none;
+      font-weight:600;
+      color:#555;
+    }
+
+    .logout-link:hover{
+      text-decoration:underline;
+    }
+  </style>
 </head>
 
 <body>
@@ -25,16 +54,33 @@
 
   <main class="content">
 
-    <header>
+    <header class="page-header">
+
       <div>
         <h2>Rediger budget</h2>
         <p>Ret budgettet og gem ændringerne</p>
       </div>
+
+      <div class="user-info">
+        <span>
+          Hej,
+          <strong th:text="${userName}">Bruger</strong> 👋
+        </span>
+
+        <a href="/logout"
+           class="logout-link"
+           onclick="localStorage.removeItem('token')">
+          Log ud
+        </a>
+      </div>
+
     </header>
+
     <p class="error-message"
        th:if="${param.error != null and param.error[0] == 'amount'}">
       Budgetbeløbet skal være større end 0.
     </p>
+
     <div class="panel">
 
       <form th:action="@{/budget/{id}/edit(id=${budget.id})}"
@@ -42,6 +88,7 @@
             class="transaction-form">
 
         <label for="amount">Beløb</label>
+
         <input type="number"
                id="amount"
                name="amount"
@@ -51,6 +98,7 @@
                required>
 
         <label for="month">Måned</label>
+
         <select id="month" name="month" required>
           <option value="1" th:selected="${budget.month == 1}">Januar</option>
           <option value="2" th:selected="${budget.month == 2}">Februar</option>
@@ -67,6 +115,7 @@
         </select>
 
         <label for="year">År</label>
+
         <input type="number"
                id="year"
                name="year"
@@ -74,6 +123,7 @@
                required>
 
         <label for="subcategoryId">Underkategori</label>
+
         <select id="subcategoryId"
                 name="subcategoryId"
                 required>
@@ -106,6 +156,7 @@
     </div>
 
   </main>
+
 </div>
 
 </body>

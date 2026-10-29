@@ -5,11 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tilføj kategori - PengeOverblik</title>
   <link rel="stylesheet" href="/css/dashboard.css">
+
+  <style>
+    .page-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:20px;
+    }
+
+    .user-info{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      font-size:15px;
+      white-space:nowrap;
+    }
+
+    .user-info span{
+      color:#333;
+    }
+
+    .logout-link{
+      text-decoration:none;
+      font-weight:600;
+      color:#555;
+    }
+
+    .logout-link:hover{
+      text-decoration:underline;
+    }
+  </style>
 </head>
+
 <body>
+
 <div class="layout">
+
   <aside class="sidebar">
     <h1>Penge<span>Overblik</span></h1>
+
     <nav>
       <a href="/dashboard">Overblik</a>
       <a href="/transactions">Transaktioner</a>
@@ -18,46 +53,82 @@
       <a class="active" href="/categories">Kategorier</a>
     </nav>
   </aside>
+
   <main class="content">
-    <header>
+
+    <header class="page-header">
+
       <div>
         <h2>Tilføj kategori</h2>
         <p>Opret en ny hovedkategori</p>
       </div>
+
+      <div class="user-info">
+        <span>
+          Hej,
+          <strong th:text="${userName}">Bruger</strong> 👋
+        </span>
+
+        <a href="/logout"
+           class="logout-link"
+           onclick="localStorage.removeItem('token')">
+          Log ud
+        </a>
+      </div>
+
     </header>
+
     <div class="panel">
-      <form action="/categories" method="post"
+
+      <form action="/categories"
+            method="post"
             class="transaction-form">
+
         <label for="name">Navn</label>
+
         <input type="text"
                id="name"
                name="name"
                placeholder="Fx Sundhed"
                required>
+
         <label for="type">Type</label>
+
         <select id="type"
                 name="type"
                 required>
+
           <option value="EXPENSE">
             Udgift
           </option>
+
           <option value="INCOME">
             Indkomst
           </option>
+
         </select>
+
         <div class="form-actions">
+
           <a href="/categories"
              class="cancel-button">
             Annuller
           </a>
+
           <button type="submit"
                   class="add-button">
             Gem kategori
           </button>
+
         </div>
+
       </form>
+
     </div>
+
   </main>
+
 </div>
+
 </body>
 </html>

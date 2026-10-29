@@ -6,13 +6,10 @@ import app.daos.UserDAO;
 import app.entities.RecurringPayment;
 import app.entities.Subcategory;
 import app.entities.User;
-import app.enums.Frequency;
-import app.enums.TransactionType;
 import io.javalin.http.Context;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -24,189 +21,295 @@ public class RecurringPaymentController {
     private final SubcategoryDAO subcategoryDAO;
 
     public void getAll(Context ctx) {
-        Integer userId = ctx.attribute("userId");
-        List<RecurringPayment> payments =
-                recurringPaymentDAO.findByUserId(userId);
-        ctx.json(payments);
+        try {
+            Integer userId = ctx.attribute("userId");
+
+            List<RecurringPayment> payments =
+                    recurringPaymentDAO.findByUserId(userId);
+
+            ctx.json(payments);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            ctx.status(500).json(Map.of(
+                    "message", "Der opstod en fejl"
+            ));
+        }
     }
 
     public void getById(Context ctx) {
-        Integer id = Integer.parseInt(ctx.pathParam("id"));
-        Integer userId = ctx.attribute("userId");
+        try {
+            Integer id = Integer.parseInt(ctx.pathParam("id"));
+            Integer userId = ctx.attribute("userId");
 
-        RecurringPayment payment =
-                recurringPaymentDAO.findById(id);
+            RecurringPayment payment =
+                    recurringPaymentDAO.findByIdAndUserId(id, userId);
 
-        if (payment == null ||
-                !payment.getUser().getId().equals(userId)) {
-            ctx.status(404).json(Map.of(
-                    "message",
-                    "Betalingen blev ikke fundet"
+            if (payment == null) {
+                ctx.status(404).json(Map.of(
+                        "message", "Betalingen blev ikke fundet"
+                ));
+                return;
+            }
+
+            ctx.json(payment);
+
+        } catch (NumberFormatException e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldigt betalings-id"
             ));
-            return;
-        }
 
-        ctx.json(payment);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            ctx.status(500).json(Map.of(
+                    "message", "Der opstod en fejl"
+            ));
+        }
     }
 
     public void create(Context ctx) {
-        Integer userId = ctx.attribute("userId");
-        RecurringPayment request =
-                ctx.bodyAsClass(RecurringPayment.class);
+        try {
+            Integer userId = ctx.attribute("userId");
 
-        User user = userDAO.findById(userId);
+            RecurringPayment request =
+                    ctx.bodyAsClass(RecurringPayment.class);
 
-        if (user == null) {
-            ctx.status(404).json(Map.of(
-                    "message",
-                    "Brugeren blev ikke fundet"
-            ));
-            return;
-        }
+            if (request.getName() == null ||
+                    request.getName().isBlank()) {
 
-        if (request.getAmount() == null ||
-                request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                ctx.status(400).json(Map.of(
+                        "message", "Navn skal udfyldes"
+                ));
+                return;
+            }
+
+            if (request.getAmount() == null ||
+                    request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+
+                ctx.status(400).json(Map.of(
+                        "message", "Beløbet skal være større end 0"
+                ));
+                return;
+            }
+
+            if (request.getType() == null) {
+                ctx.status(400).json(Map.of(
+                        "message", "Type skal angives"
+                ));
+                return;
+            }
+
+            if (request.getFrequency() == null) {
+                ctx.status(400).json(Map.of(
+                        "message", "Frekvens skal angives"
+                ));
+                return;
+            }
+
+            if (request.getStartDate() == null) {
+                ctx.status(400).json(Map.of(
+                        "message", "Startdato skal angives"
+                ));
+                return;
+            }
+
+            if (request.getSubcategory() == null ||
+                    request.getSubcategory().getId() == null) {
+
+                ctx.status(400).json(Map.of(
+                        "message", "Underkategori mangler"
+                ));
+                return;
+            }
+
+            User user = userDAO.findById(userId);
+
+            if (user == null) {
+                ctx.status(404).json(Map.of(
+                        "message", "Brugeren blev ikke fundet"
+                ));
+                return;
+            }
+
+            Subcategory subcategory =
+                    subcategoryDAO.findByIdAndUserId(
+                            request.getSubcategory().getId(),
+                            userId
+                    );
+
+            if (subcategory == null) {
+                ctx.status(404).json(Map.of(
+                        "message", "Underkategorien blev ikke fundet"
+                ));
+                return;
+            }
+
+            RecurringPayment payment =
+                    RecurringPayment.builder()
+                            .name(request.getName().trim())
+                            .amount(request.getAmount())
+                            .type(request.getType())
+                            .frequency(request.getFrequency())
+                            .customInterval(request.getCustomInterval())
+                            .startDate(request.getStartDate())
+                            .nextPaymentDate(request.getNextPaymentDate())
+                            .endDate(request.getEndDate())
+                            .user(user)
+                            .subcategory(subcategory)
+                            .build();
+
+            RecurringPayment created =
+                    recurringPaymentDAO.create(payment);
+
+            ctx.status(201).json(created);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
             ctx.status(400).json(Map.of(
-                    "message",
-                    "Beløbet skal være større end 0"
+                    "message", "Betalingen kunne ikke oprettes"
             ));
-            return;
         }
-
-        if (request.getSubcategory() == null ||
-                request.getSubcategory().getId() == null) {
-            ctx.status(400).json(Map.of(
-                    "message",
-                    "Underkategori mangler"
-            ));
-            return;
-        }
-
-        Subcategory subcategory =
-                subcategoryDAO.findById(
-                        request.getSubcategory().getId()
-                );
-
-        if (subcategory == null ||
-                !subcategory.getCategory()
-                        .getUser()
-                        .getId()
-                        .equals(userId)) {
-            ctx.status(404).json(Map.of(
-                    "message",
-                    "Underkategorien blev ikke fundet"
-            ));
-            return;
-        }
-
-        RecurringPayment payment =
-                RecurringPayment.builder()
-                        .name(request.getName())
-                        .amount(request.getAmount())
-                        .type(request.getType())
-                        .frequency(request.getFrequency())
-                        .customInterval(request.getCustomInterval())
-                        .startDate(request.getStartDate())
-                        .nextPaymentDate(request.getNextPaymentDate())
-                        .endDate(request.getEndDate())
-                        .user(user)
-                        .subcategory(subcategory)
-                        .build();
-
-        RecurringPayment created =
-                recurringPaymentDAO.create(payment);
-
-        ctx.status(201).json(created);
     }
 
     public void update(Context ctx) {
-        Integer id = Integer.parseInt(ctx.pathParam("id"));
-        Integer userId = ctx.attribute("userId");
+        try {
+            Integer id = Integer.parseInt(ctx.pathParam("id"));
+            Integer userId = ctx.attribute("userId");
 
-        RecurringPayment existing =
-                recurringPaymentDAO.findById(id);
+            RecurringPayment existing =
+                    recurringPaymentDAO.findByIdAndUserId(id, userId);
 
-        if (existing == null ||
-                !existing.getUser().getId().equals(userId)) {
-            ctx.status(404).json(Map.of(
-                    "message",
-                    "Betalingen blev ikke fundet"
-            ));
-            return;
-        }
+            if (existing == null) {
+                ctx.status(404).json(Map.of(
+                        "message", "Betalingen blev ikke fundet"
+                ));
+                return;
+            }
 
-        RecurringPayment request =
-                ctx.bodyAsClass(RecurringPayment.class);
+            RecurringPayment request =
+                    ctx.bodyAsClass(RecurringPayment.class);
 
-        if (request.getAmount() == null ||
-                request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            if (request.getName() == null ||
+                    request.getName().isBlank()) {
+
+                ctx.status(400).json(Map.of(
+                        "message", "Navn skal udfyldes"
+                ));
+                return;
+            }
+
+            if (request.getAmount() == null ||
+                    request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+
+                ctx.status(400).json(Map.of(
+                        "message", "Beløbet skal være større end 0"
+                ));
+                return;
+            }
+
+            if (request.getType() == null) {
+                ctx.status(400).json(Map.of(
+                        "message", "Type skal angives"
+                ));
+                return;
+            }
+
+            if (request.getFrequency() == null) {
+                ctx.status(400).json(Map.of(
+                        "message", "Frekvens skal angives"
+                ));
+                return;
+            }
+
+            if (request.getStartDate() == null) {
+                ctx.status(400).json(Map.of(
+                        "message", "Startdato skal angives"
+                ));
+                return;
+            }
+
+            if (request.getSubcategory() == null ||
+                    request.getSubcategory().getId() == null) {
+
+                ctx.status(400).json(Map.of(
+                        "message", "Underkategori mangler"
+                ));
+                return;
+            }
+
+            Subcategory subcategory =
+                    subcategoryDAO.findByIdAndUserId(
+                            request.getSubcategory().getId(),
+                            userId
+                    );
+
+            if (subcategory == null) {
+                ctx.status(404).json(Map.of(
+                        "message", "Underkategorien blev ikke fundet"
+                ));
+                return;
+            }
+
+            existing.setName(request.getName().trim());
+            existing.setAmount(request.getAmount());
+            existing.setType(request.getType());
+            existing.setFrequency(request.getFrequency());
+            existing.setCustomInterval(request.getCustomInterval());
+            existing.setStartDate(request.getStartDate());
+            existing.setNextPaymentDate(request.getNextPaymentDate());
+            existing.setEndDate(request.getEndDate());
+            existing.setSubcategory(subcategory);
+
+            RecurringPayment updated =
+                    recurringPaymentDAO.update(existing);
+
+            ctx.json(updated);
+
+        } catch (NumberFormatException e) {
             ctx.status(400).json(Map.of(
-                    "message",
-                    "Beløbet skal være større end 0"
+                    "message", "Ugyldigt betalings-id"
             ));
-            return;
-        }
 
-        if (request.getSubcategory() == null ||
-                request.getSubcategory().getId() == null) {
+        } catch (Exception e) {
+            e.printStackTrace();
+
             ctx.status(400).json(Map.of(
-                    "message",
-                    "Underkategori mangler"
+                    "message", "Betalingen kunne ikke opdateres"
             ));
-            return;
         }
-
-        Subcategory subcategory =
-                subcategoryDAO.findById(
-                        request.getSubcategory().getId()
-                );
-
-        if (subcategory == null ||
-                !subcategory.getCategory()
-                        .getUser()
-                        .getId()
-                        .equals(userId)) {
-            ctx.status(404).json(Map.of(
-                    "message",
-                    "Underkategorien blev ikke fundet"
-            ));
-            return;
-        }
-
-        existing.setName(request.getName());
-        existing.setAmount(request.getAmount());
-        existing.setType(request.getType());
-        existing.setFrequency(request.getFrequency());
-        existing.setCustomInterval(request.getCustomInterval());
-        existing.setStartDate(request.getStartDate());
-        existing.setNextPaymentDate(request.getNextPaymentDate());
-        existing.setEndDate(request.getEndDate());
-        existing.setSubcategory(subcategory);
-
-        RecurringPayment updated =
-                recurringPaymentDAO.update(existing);
-
-        ctx.json(updated);
     }
 
     public void delete(Context ctx) {
-        Integer id = Integer.parseInt(ctx.pathParam("id"));
-        Integer userId = ctx.attribute("userId");
+        try {
+            Integer id = Integer.parseInt(ctx.pathParam("id"));
+            Integer userId = ctx.attribute("userId");
 
-        RecurringPayment payment =
-                recurringPaymentDAO.findById(id);
+            boolean deleted =
+                    recurringPaymentDAO.deleteByIdAndUserId(id, userId);
 
-        if (payment == null ||
-                !payment.getUser().getId().equals(userId)) {
-            ctx.status(404).json(Map.of(
-                    "message",
-                    "Betalingen blev ikke fundet"
+            if (!deleted) {
+                ctx.status(404).json(Map.of(
+                        "message", "Betalingen blev ikke fundet"
+                ));
+                return;
+            }
+
+            ctx.status(204);
+
+        } catch (NumberFormatException e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldigt betalings-id"
             ));
-            return;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            ctx.status(500).json(Map.of(
+                    "message", "Betalingen kunne ikke slettes"
+            ));
         }
-
-        recurringPaymentDAO.deleteById(id);
-
-        ctx.status(204);
     }
 }

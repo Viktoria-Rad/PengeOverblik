@@ -1,17 +1,17 @@
 package app.controllers;
 
 import app.daos.BudgetDAO;
-import app.entities.Budget;
-import io.javalin.http.Context;
+import app.daos.SubcategoryDAO;
+import app.daos.UserDAO;
 import app.dtos.BudgetDTO;
+import app.dtos.CreateBudgetDTO;
+import app.entities.Budget;
+import app.entities.Subcategory;
+import app.entities.User;
+import io.javalin.http.Context;
 
 import java.util.List;
 import java.util.Map;
-import app.daos.SubcategoryDAO;
-import app.daos.UserDAO;
-import app.dtos.CreateBudgetDTO;
-import app.entities.Subcategory;
-import app.entities.User;
 
 public class BudgetController {
 
@@ -56,16 +56,16 @@ public class BudgetController {
 
         ctx.json(budgetDTOs);
     }
+
     public void getById(Context ctx) {
         try {
             int id = Integer.parseInt(ctx.pathParam("id"));
-
-            Budget budget = budgetDAO.findById(id);
             Integer userId = ctx.attribute("userId");
 
+            Budget budget = budgetDAO.findByIdAndUserId(id, userId);
+
             if (budget == null) {
-                ctx.status(404);
-                ctx.json(Map.of(
+                ctx.status(404).json(Map.of(
                         "message", "Budgettet blev ikke fundet"
                 ));
                 return;
@@ -84,8 +84,7 @@ public class BudgetController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(500);
-            ctx.json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Der opstod en fejl"
             ));
         }
@@ -96,39 +95,48 @@ public class BudgetController {
             CreateBudgetDTO dto =
                     ctx.bodyAsClass(CreateBudgetDTO.class);
 
-            if (dto.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                ctx.status(400);
-                ctx.json(Map.of(
+            if (dto.amount() == null ||
+                    dto.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                ctx.status(400).json(Map.of(
                         "message", "Beløbet skal være større end 0"
                 ));
                 return;
             }
 
             if (dto.month() < 1 || dto.month() > 12) {
-                ctx.status(400);
-                ctx.json(Map.of(
+                ctx.status(400).json(Map.of(
                         "message", "Måneden skal være mellem 1 og 12"
                 ));
                 return;
             }
 
             if (dto.year() < 2020 || dto.year() > 2100) {
-                ctx.status(400);
-                ctx.json(Map.of(
+                ctx.status(400).json(Map.of(
                         "message", "Årstallet er ugyldigt"
                 ));
                 return;
             }
 
             Integer userId = ctx.attribute("userId");
+
             User user = userDAO.findById(userId);
+
             Subcategory subcategory =
                     subcategoryDAO.findById(dto.subcategoryId());
 
             if (user == null || subcategory == null) {
-                ctx.status(404);
-                ctx.json(Map.of(
+                ctx.status(404).json(Map.of(
                         "message", "Bruger eller underkategori blev ikke fundet"
+                ));
+                return;
+            }
+
+            if (subcategory.getCategory() == null ||
+                    subcategory.getCategory().getUser() == null ||
+                    !subcategory.getCategory().getUser().getId().equals(userId)) {
+
+                ctx.status(404).json(Map.of(
+                        "message", "Underkategorien blev ikke fundet"
                 ));
                 return;
             }
@@ -142,8 +150,7 @@ public class BudgetController {
                     );
 
             if (existingBudget != null) {
-                ctx.status(409);
-                ctx.json(Map.of(
+                ctx.status(409).json(Map.of(
                         "message", "Budgettet findes allerede"
                 ));
                 return;
@@ -169,27 +176,26 @@ public class BudgetController {
                     createdBudget.getSubcategory().getName()
             );
 
-            ctx.status(201);
-            ctx.json(response);
+            ctx.status(201).json(response);
 
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(400);
-            ctx.json(Map.of(
+            ctx.status(400).json(Map.of(
                     "message", "Budgettet kunne ikke oprettes"
             ));
         }
     }
+
     public void update(Context ctx) {
         try {
             int id = Integer.parseInt(ctx.pathParam("id"));
-
-            Budget existing = budgetDAO.findById(id);
             Integer userId = ctx.attribute("userId");
 
+            Budget existing =
+                    budgetDAO.findByIdAndUserId(id, userId);
+
             if (existing == null) {
-                ctx.status(404);
-                ctx.json(Map.of(
+                ctx.status(404).json(Map.of(
                         "message", "Budgettet blev ikke fundet"
                 ));
                 return;
@@ -198,25 +204,23 @@ public class BudgetController {
             CreateBudgetDTO dto =
                     ctx.bodyAsClass(CreateBudgetDTO.class);
 
-            if (dto.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                ctx.status(400);
-                ctx.json(Map.of(
+            if (dto.amount() == null ||
+                    dto.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                ctx.status(400).json(Map.of(
                         "message", "Beløbet skal være større end 0"
                 ));
                 return;
             }
 
             if (dto.month() < 1 || dto.month() > 12) {
-                ctx.status(400);
-                ctx.json(Map.of(
+                ctx.status(400).json(Map.of(
                         "message", "Måneden skal være mellem 1 og 12"
                 ));
                 return;
             }
 
             if (dto.year() < 2020 || dto.year() > 2100) {
-                ctx.status(400);
-                ctx.json(Map.of(
+                ctx.status(400).json(Map.of(
                         "message", "Årstallet er ugyldigt"
                 ));
                 return;
@@ -225,9 +229,12 @@ public class BudgetController {
             Subcategory subcategory =
                     subcategoryDAO.findById(dto.subcategoryId());
 
-            if (subcategory == null) {
-                ctx.status(404);
-                ctx.json(Map.of(
+            if (subcategory == null ||
+                    subcategory.getCategory() == null ||
+                    subcategory.getCategory().getUser() == null ||
+                    !subcategory.getCategory().getUser().getId().equals(userId)) {
+
+                ctx.status(404).json(Map.of(
                         "message", "Underkategorien blev ikke fundet"
                 ));
                 return;
@@ -254,35 +261,32 @@ public class BudgetController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(400);
-            ctx.json(Map.of(
+            ctx.status(400).json(Map.of(
                     "message", "Budgettet kunne ikke opdateres"
             ));
         }
     }
+
     public void delete(Context ctx) {
         try {
             int id = Integer.parseInt(ctx.pathParam("id"));
-
-            Budget existing = budgetDAO.findById(id);
             Integer userId = ctx.attribute("userId");
 
-            if (existing == null) {
-                ctx.status(404);
-                ctx.json(Map.of(
+            boolean deleted =
+                    budgetDAO.deleteByIdAndUserId(id, userId);
+
+            if (!deleted) {
+                ctx.status(404).json(Map.of(
                         "message", "Budgettet blev ikke fundet"
                 ));
                 return;
             }
 
-            budgetDAO.deleteById(id);
-
             ctx.status(204);
 
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(500);
-            ctx.json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Budgettet kunne ikke slettes"
             ));
         }

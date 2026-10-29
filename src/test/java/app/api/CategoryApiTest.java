@@ -1,25 +1,23 @@
-package app;
+package app.api;
 
-import app.api.TestAuthHelper;
-import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 
-public class CategoryApiTest {
+public class CategoryApiTest extends BaseApiTest {
+
+    private static String token;
 
     @BeforeAll
-    static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 7070;
+    static void setupTestData() {
+        token = TestAuthHelper.registerAndGetAnnaToken();
     }
 
     @Test
     void getAllCategoriesTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -31,7 +29,6 @@ public class CategoryApiTest {
 
     @Test
     void createAndDeleteCategoryTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         String body = """
                 {
@@ -63,6 +60,7 @@ public class CategoryApiTest {
 
     @Test
     void categoriesWithoutTokenTest() {
+
         given()
                 .when()
                 .get("/api/categories")

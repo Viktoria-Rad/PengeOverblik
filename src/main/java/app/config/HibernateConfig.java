@@ -8,11 +8,11 @@ import java.util.Properties;
 
 public class HibernateConfig {
 
-    private static SessionFactory sessionFactory;
+    private static SessionFactory sf;
 
     public static SessionFactory getSessionFactory() {
 
-        if (sessionFactory == null) {
+        if (sf == null) {
 
             String dbHost = System.getenv("DB_HOST");
             String dbPort = System.getenv("DB_PORT");
@@ -20,8 +20,13 @@ public class HibernateConfig {
             String username = System.getenv("DB_USERNAME");
             String password = System.getenv("DB_PASSWORD");
 
-            if (dbHost == null) dbHost = "localhost";
-            if (dbPort == null) dbPort = "5432";
+            if (dbHost == null) {
+                dbHost = "localhost";
+            }
+
+            if (dbPort == null) {
+                dbPort = "5432";
+            }
 
             if (dbName == null) {
                 dbName = Utils.getPropertyValue(
@@ -81,22 +86,43 @@ public class HibernateConfig {
                     "true"
             );
 
-            Configuration configuration =
-                    new Configuration();
-
-            configuration.setProperties(properties);
-
-            configuration.addAnnotatedClass(User.class);
-            configuration.addAnnotatedClass(Category.class);
-            configuration.addAnnotatedClass(Subcategory.class);
-            configuration.addAnnotatedClass(Transaction.class);
-            configuration.addAnnotatedClass(Budget.class);
-            configuration.addAnnotatedClass(RecurringPayment.class);
-
-            sessionFactory =
-                    configuration.buildSessionFactory();
+            sf = buildSessionFactory(properties);
         }
 
-        return sessionFactory;
+        return sf;
+    }
+
+    private static SessionFactory buildSessionFactory(
+            Properties properties
+    ) {
+
+        Configuration configuration =
+                new Configuration();
+
+        configuration.setProperties(properties);
+
+        configuration.addAnnotatedClass(User.class);
+        configuration.addAnnotatedClass(Category.class);
+        configuration.addAnnotatedClass(Subcategory.class);
+        configuration.addAnnotatedClass(Transaction.class);
+        configuration.addAnnotatedClass(Budget.class);
+        configuration.addAnnotatedClass(RecurringPayment.class);
+
+        return configuration.buildSessionFactory();
+    }
+
+    public static void setSessionFactoryForTests(
+            SessionFactory testSf
+    ) {
+        sf = testSf;
+    }
+
+    public static void resetSessionFactory() {
+
+        if (sf != null && !sf.isClosed()) {
+            sf.close();
+        }
+
+        sf = null;
     }
 }

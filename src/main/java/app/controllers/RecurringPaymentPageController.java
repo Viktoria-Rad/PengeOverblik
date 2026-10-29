@@ -51,6 +51,8 @@ public class RecurringPaymentPageController {
 
     public void create(Context ctx) {
 
+        Integer userId = ctx.attribute("userId");
+
         String name = ctx.formParam("name");
 
         BigDecimal amount =
@@ -81,18 +83,18 @@ public class RecurringPaymentPageController {
         Integer subcategoryId =
                 Integer.parseInt(ctx.formParam("subcategoryId"));
 
-        Integer userId = ctx.attribute("userId");
-
-        User user = userDAO.findById(userId);
+        User user =
+                userDAO.findById(userId);
 
         Subcategory subcategory =
-                subcategoryDAO.findById(subcategoryId);
+                subcategoryDAO.findByIdAndUserId(
+                        subcategoryId,
+                        userId
+                );
 
-        if (subcategory == null ||
-                !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+        if (user == null || subcategory == null) {
             ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
+            ctx.result("Bruger eller underkategori blev ikke fundet");
             return;
         }
 
@@ -118,14 +120,16 @@ public class RecurringPaymentPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
         RecurringPayment payment =
-                recurringPaymentDAO.findById(id);
+                recurringPaymentDAO.findByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (payment == null ||
-                !payment.getUser().getId().equals(userId)) {
-
+        if (payment == null) {
             ctx.status(404);
             ctx.result("Betalingen blev ikke fundet");
             return;
@@ -148,14 +152,16 @@ public class RecurringPaymentPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
         RecurringPayment payment =
-                recurringPaymentDAO.findById(id);
+                recurringPaymentDAO.findByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (payment == null ||
-                !payment.getUser().getId().equals(userId)) {
-
+        if (payment == null) {
             ctx.status(404);
             ctx.result("Betalingen blev ikke fundet");
             return;
@@ -196,11 +202,12 @@ public class RecurringPaymentPageController {
                 Integer.parseInt(ctx.formParam("subcategoryId"));
 
         Subcategory subcategory =
-                subcategoryDAO.findById(subcategoryId);
+                subcategoryDAO.findByIdAndUserId(
+                        subcategoryId,
+                        userId
+                );
 
-        if (subcategory == null ||
-                !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+        if (subcategory == null) {
             ctx.status(404);
             ctx.result("Underkategorien blev ikke fundet");
             return;
@@ -224,20 +231,20 @@ public class RecurringPaymentPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
-        RecurringPayment payment =
-                recurringPaymentDAO.findById(id);
+        boolean deleted =
+                recurringPaymentDAO.deleteByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (payment == null ||
-                !payment.getUser().getId().equals(userId)) {
-
+        if (!deleted) {
             ctx.status(404);
             ctx.result("Betalingen blev ikke fundet");
             return;
         }
-
-        recurringPaymentDAO.deleteById(id);
 
         ctx.redirect("/recurring-payments");
     }

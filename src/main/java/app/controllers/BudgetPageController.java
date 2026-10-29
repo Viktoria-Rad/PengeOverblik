@@ -10,6 +10,7 @@ import io.javalin.http.Context;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -24,13 +25,13 @@ public class BudgetPageController {
 
         Integer userId = ctx.attribute("userId");
 
-        Integer month = ctx.queryParam("month") != null
+        int month = ctx.queryParam("month") != null
                 ? Integer.parseInt(ctx.queryParam("month"))
-                : 8;
+                : LocalDate.now().getMonthValue();
 
-        Integer year = ctx.queryParam("year") != null
+        int year = ctx.queryParam("year") != null
                 ? Integer.parseInt(ctx.queryParam("year"))
-                : 2026;
+                : LocalDate.now().getYear();
 
         List<Budget> budgets =
                 budgetDAO.findAllByUserAndMonth(
@@ -39,15 +40,10 @@ public class BudgetPageController {
                         year
                 );
 
-        BigDecimal totalBudget = budgets.stream()
-                .map(Budget::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         ctx.render(
-                "/templates/budget.html",
+                "budget.html",
                 Map.of(
                         "budgets", budgets,
-                        "totalBudget", totalBudget,
                         "month", month,
                         "year", year
                 )
@@ -58,19 +54,19 @@ public class BudgetPageController {
 
         Integer userId = ctx.attribute("userId");
 
-        Integer month = ctx.queryParam("month") != null
+        int month = ctx.queryParam("month") != null
                 ? Integer.parseInt(ctx.queryParam("month"))
-                : 8;
+                : LocalDate.now().getMonthValue();
 
-        Integer year = ctx.queryParam("year") != null
+        int year = ctx.queryParam("year") != null
                 ? Integer.parseInt(ctx.queryParam("year"))
-                : 2026;
+                : LocalDate.now().getYear();
 
         List<Subcategory> subcategories =
                 subcategoryDAO.findByUserId(userId);
 
         ctx.render(
-                "/templates/budget-form.html",
+                "budget-form.html",
                 Map.of(
                         "subcategories", subcategories,
                         "month", month,
@@ -92,42 +88,24 @@ public class BudgetPageController {
         Integer year =
                 Integer.parseInt(ctx.formParam("year"));
 
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            ctx.redirect(
-                    "/budget?month=" + month +
-                            "&year=" + year +
-                            "&error=amount"
-            );
-            return;
-        }
-
-        if (month < 1 || month > 12) {
-            ctx.status(400);
-            ctx.result("Måneden skal være mellem 1 og 12.");
-            return;
-        }
-
-        if (year < 2020 || year > 2100) {
-            ctx.status(400);
-            ctx.result("Årstallet er ugyldigt.");
-            return;
-        }
-
         Integer subcategoryId =
                 Integer.parseInt(ctx.formParam("subcategoryId"));
 
+        User user =
+                userDAO.findById(userId);
+
         Subcategory subcategory =
-                subcategoryDAO.findById(subcategoryId);
+                subcategoryDAO.findByIdAndUserId(
+                        subcategoryId,
+                        userId
+                );
 
-        if (subcategory == null ||
-                !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+        if (user == null || subcategory == null) {
             ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
             return;
         }
 
-        Budget existingBudget =
+        Budget existing =
                 budgetDAO.findByUserMonthAndSubcategory(
                         userId,
                         month,
@@ -135,15 +113,10 @@ public class BudgetPageController {
                         subcategoryId
                 );
 
-        if (existingBudget != null) {
-            ctx.redirect(
-                    "/budget?month=" + month +
-                            "&year=" + year
-            );
+        if (existing != null) {
+            ctx.status(409);
             return;
         }
-
-        User user = userDAO.findById(userId);
 
         Budget budget = Budget.builder()
                 .amount(amount)
@@ -166,16 +139,17 @@ public class BudgetPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
         Budget budget =
-                budgetDAO.findById(id);
+                budgetDAO.findByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (budget == null ||
-                !budget.getUser().getId().equals(userId)) {
-
+        if (budget == null) {
             ctx.status(404);
-            ctx.result("Budgettet blev ikke fundet");
             return;
         }
 
@@ -183,7 +157,7 @@ public class BudgetPageController {
                 subcategoryDAO.findByUserId(userId);
 
         ctx.render(
-                "/templates/budget-edit.html",
+                "budget-edit.html",
                 Map.of(
                         "budget", budget,
                         "subcategories", subcategories
@@ -196,16 +170,17 @@ public class BudgetPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
         Budget budget =
-                budgetDAO.findById(id);
+                budgetDAO.findByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (budget == null ||
-                !budget.getUser().getId().equals(userId)) {
-
+        if (budget == null) {
             ctx.status(404);
-            ctx.result("Budgettet blev ikke fundet");
             return;
         }
 
@@ -218,36 +193,17 @@ public class BudgetPageController {
         Integer year =
                 Integer.parseInt(ctx.formParam("year"));
 
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            ctx.redirect(
-                    "/budget/" + id + "/edit?error=amount"
-            );
-            return;
-        }
-
-        if (month < 1 || month > 12) {
-            ctx.status(400);
-            ctx.result("Måneden skal være mellem 1 og 12.");
-            return;
-        }
-
-        if (year < 2020 || year > 2100) {
-            ctx.status(400);
-            ctx.result("Årstallet er ugyldigt.");
-            return;
-        }
-
         Integer subcategoryId =
                 Integer.parseInt(ctx.formParam("subcategoryId"));
 
         Subcategory subcategory =
-                subcategoryDAO.findById(subcategoryId);
+                subcategoryDAO.findByIdAndUserId(
+                        subcategoryId,
+                        userId
+                );
 
-        if (subcategory == null ||
-                !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+        if (subcategory == null) {
             ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
             return;
         }
 
@@ -269,18 +225,8 @@ public class BudgetPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
-
-        Budget budget =
-                budgetDAO.findById(id);
-
-        if (budget == null ||
-                !budget.getUser().getId().equals(userId)) {
-
-            ctx.status(404);
-            ctx.result("Budgettet blev ikke fundet");
-            return;
-        }
+        Integer userId =
+                ctx.attribute("userId");
 
         Integer month =
                 Integer.parseInt(ctx.formParam("month"));
@@ -288,7 +234,10 @@ public class BudgetPageController {
         Integer year =
                 Integer.parseInt(ctx.formParam("year"));
 
-        budgetDAO.deleteById(id);
+        budgetDAO.deleteByIdAndUserId(
+                id,
+                userId
+        );
 
         ctx.redirect(
                 "/budget?month=" + month +

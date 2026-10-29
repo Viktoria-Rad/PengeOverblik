@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +34,11 @@ public class DashboardController {
 
         Integer month = ctx.queryParam("month") != null
                 ? Integer.parseInt(ctx.queryParam("month"))
-                : 8;
+                : LocalDate.now().getMonthValue();
 
         Integer year = ctx.queryParam("year") != null
                 ? Integer.parseInt(ctx.queryParam("year"))
-                : 2026;
+                : LocalDate.now().getYear();
 
         List<RecurringPayment> payments =
                 recurringPaymentDAO.findByUserId(userId);
@@ -126,80 +127,99 @@ public class DashboardController {
         );
     }
 
-        public void getDashboardApi(Context ctx) {
+    public void getDashboardApi(Context ctx) {
 
-            Integer userId = ctx.attribute("userId");
+        Integer userId = ctx.attribute("userId");
 
-            Integer month = ctx.queryParam("month") != null
-                    ? Integer.parseInt(ctx.queryParam("month"))
-                    : 8;
+        Integer month = ctx.queryParam("month") != null
+                ? Integer.parseInt(ctx.queryParam("month"))
+                : LocalDate.now().getMonthValue();
 
-            Integer year = ctx.queryParam("year") != null
-                    ? Integer.parseInt(ctx.queryParam("year"))
-                    : 2026;
+        Integer year = ctx.queryParam("year") != null
+                ? Integer.parseInt(ctx.queryParam("year"))
+                : LocalDate.now().getYear();
 
-            List<RecurringPayment> payments =
-                    recurringPaymentDAO.findByUserId(userId);
+        List<RecurringPayment> payments =
+                recurringPaymentDAO.findByUserId(userId);
 
-            List<CategoryExpense> expensesByCategory =
-                    transactionDAO.getExpensesByCategory(userId, month, year);
+        List<CategoryExpense> expensesByCategory =
+                transactionDAO.getExpensesByCategory(
+                        userId,
+                        month,
+                        year
+                );
 
-            List<MonthlyFinanceOverview> monthlyFinanceOverview =
-                    financeService.getMonthlyFinanceOverview(userId, month, year);
+        List<MonthlyFinanceOverview> monthlyFinanceOverview =
+                financeService.getMonthlyFinanceOverview(
+                        userId,
+                        month,
+                        year
+                );
 
-            List<Budget> budgets =
-                    budgetDAO.findAllByUserAndMonth(userId, month, year);
+        List<Budget> budgets =
+                budgetDAO.findAllByUserAndMonth(
+                        userId,
+                        month,
+                        year
+                );
 
-            List<BudgetOverview> budgetOverview =
-                    financeService.getBudgetOverview(
-                            userId,
-                            month,
-                            year,
-                            budgets
-                    );
+        List<BudgetOverview> budgetOverview =
+                financeService.getBudgetOverview(
+                        userId,
+                        month,
+                        year,
+                        budgets
+                );
 
-            DashboardSummary dashboard =
-                    financeService.getDashboardSummary(
-                            userId,
-                            month,
-                            year,
-                            payments
-                    );
+        DashboardSummary dashboard =
+                financeService.getDashboardSummary(
+                        userId,
+                        month,
+                        year,
+                        payments
+                );
 
-            BigDecimal totalBudget = budgets.stream()
-                    .map(Budget::getAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalBudget = budgets.stream()
+                .map(Budget::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            BigDecimal budgetRemaining =
-                    totalBudget.subtract(dashboard.getTotalExpenses());
-
-            BigDecimal budgetUsedPercent = BigDecimal.ZERO;
-
-            if (totalBudget.compareTo(BigDecimal.ZERO) > 0) {
-                budgetUsedPercent =
+        BigDecimal budgetRemaining =
+                totalBudget.subtract(
                         dashboard.getTotalExpenses()
-                                .multiply(BigDecimal.valueOf(100))
-                                .divide(
-                                        totalBudget,
-                                        2,
-                                        RoundingMode.HALF_UP
-                                );
-            }
+                );
 
-            Map<String, Object> response = new HashMap<>();
+        BigDecimal budgetUsedPercent =
+                BigDecimal.ZERO;
 
-            response.put("dashboard", dashboard);
-            response.put("budgets", budgets);
-            response.put("budgetOverview", budgetOverview);
-            response.put("totalBudget", totalBudget);
-            response.put("budgetRemaining", budgetRemaining);
-            response.put("budgetUsedPercent", budgetUsedPercent);
-            response.put("payments", payments);
-            response.put("month", month);
-            response.put("year", year);
-            response.put("expensesByCategory", expensesByCategory);
-            response.put("monthlyFinanceOverview", monthlyFinanceOverview);
-
-            ctx.json(response);
+        if (totalBudget.compareTo(BigDecimal.ZERO) > 0) {
+            budgetUsedPercent =
+                    dashboard.getTotalExpenses()
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(
+                                    totalBudget,
+                                    2,
+                                    RoundingMode.HALF_UP
+                            );
         }
+
+        Map<String, Object> response =
+                new HashMap<>();
+
+        response.put("dashboard", dashboard);
+        response.put("budgets", budgets);
+        response.put("budgetOverview", budgetOverview);
+        response.put("totalBudget", totalBudget);
+        response.put("budgetRemaining", budgetRemaining);
+        response.put("budgetUsedPercent", budgetUsedPercent);
+        response.put("payments", payments);
+        response.put("month", month);
+        response.put("year", year);
+        response.put("expensesByCategory", expensesByCategory);
+        response.put(
+                "monthlyFinanceOverview",
+                monthlyFinanceOverview
+        );
+
+        ctx.json(response);
     }
+}

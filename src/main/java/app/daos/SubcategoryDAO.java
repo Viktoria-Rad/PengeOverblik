@@ -8,6 +8,7 @@ import org.hibernate.SessionFactory;
 import java.util.List;
 
 public class SubcategoryDAO {
+
     private final SessionFactory sf;
 
     public SubcategoryDAO() {
@@ -17,7 +18,7 @@ public class SubcategoryDAO {
     // CREATE
     public Subcategory create(Subcategory subcategory) {
         try (Session session = sf.openSession()) {
-            session.getTransaction().begin();
+            session.beginTransaction();
             session.persist(subcategory);
             session.getTransaction().commit();
             return subcategory;
@@ -31,11 +32,28 @@ public class SubcategoryDAO {
         }
     }
 
+    // READ BY ID + USER
+    public Subcategory findByIdAndUserId(Integer id, Integer userId) {
+        try (Session session = sf.openSession()) {
+            return session.createQuery(
+                            "FROM Subcategory s " +
+                                    "WHERE s.id = :id " +
+                                    "AND s.category.user.id = :userId",
+                            Subcategory.class
+                    )
+                    .setParameter("id", id)
+                    .setParameter("userId", userId)
+                    .uniqueResult();
+        }
+    }
+
     // READ ALL FOR USER
     public List<Subcategory> findByUserId(Integer userId) {
         try (Session session = sf.openSession()) {
             return session.createQuery(
-                            "FROM Subcategory WHERE category.user.id = :userId",
+                            "FROM Subcategory s " +
+                                    "WHERE s.category.user.id = :userId " +
+                                    "ORDER BY s.name",
                             Subcategory.class
                     )
                     .setParameter("userId", userId)
@@ -46,24 +64,41 @@ public class SubcategoryDAO {
     // UPDATE
     public Subcategory update(Subcategory subcategory) {
         try (Session session = sf.openSession()) {
-            session.getTransaction().begin();
+            session.beginTransaction();
+
             Subcategory updated =
                     session.merge(subcategory);
+
             session.getTransaction().commit();
+
             return updated;
         }
     }
 
-    // DELETE
-    public void deleteById(Integer id) {
+    // DELETE BY ID + USER
+    public boolean deleteByIdAndUserId(Integer id, Integer userId) {
         try (Session session = sf.openSession()) {
-            session.getTransaction().begin();
-            Subcategory subcategory =
-                    session.find(Subcategory.class, id);
-            if (subcategory != null) {
-                session.remove(subcategory);
+            session.beginTransaction();
+
+            Subcategory subcategory = session.createQuery(
+                            "FROM Subcategory s " +
+                                    "WHERE s.id = :id " +
+                                    "AND s.category.user.id = :userId",
+                            Subcategory.class
+                    )
+                    .setParameter("id", id)
+                    .setParameter("userId", userId)
+                    .uniqueResult();
+
+            if (subcategory == null) {
+                session.getTransaction().commit();
+                return false;
             }
+
+            session.remove(subcategory);
             session.getTransaction().commit();
+
+            return true;
         }
     }
 }

@@ -14,8 +14,19 @@ import io.javalin.rendering.template.JavalinThymeleaf;
 public class Main {
 
     public static void main(String[] args) {
+        int port = System.getenv("PORT") != null
+                ? Integer.parseInt(System.getenv("PORT"))
+                : 7070;
+
+        createApp().start(port);
+    }
+
+    public static Javalin createApp() {
 
         FinanceService financeService = new FinanceService();
+        CurrencyService currencyService = new CurrencyService();
+        TokenService tokenService = new TokenService();
+
         RecurringPaymentDAO recurringPaymentDAO = new RecurringPaymentDAO();
         BudgetDAO budgetDAO = new BudgetDAO();
         CategoryDAO categoryDAO = new CategoryDAO();
@@ -23,22 +34,18 @@ public class Main {
         UserDAO userDAO = new UserDAO();
         TransactionDAO transactionDAO = new TransactionDAO();
         SecurityDAO securityDAO = new SecurityDAO(userDAO);
-        TokenService tokenService = new TokenService();
+
+        SecurityMiddleware securityMiddleware =
+                new SecurityMiddleware(tokenService);
 
         SecurityController securityController =
                 new SecurityController(securityDAO, tokenService, userDAO);
-        SecurityRoutes securityRoutes =
-                new SecurityRoutes(securityController);
 
         TransactionController transactionController =
                 new TransactionController(transactionDAO, userDAO, subcategoryDAO);
-        TransactionRoutes transactionRoutes =
-                new TransactionRoutes(transactionController);
 
         BudgetController budgetController =
                 new BudgetController(budgetDAO, userDAO, subcategoryDAO);
-        BudgetRoutes budgetRoutes =
-                new BudgetRoutes(budgetController);
 
         DashboardController dashboardController =
                 new DashboardController(
@@ -47,8 +54,6 @@ public class Main {
                         budgetDAO,
                         transactionDAO
                 );
-        DashboardRoutes dashboardRoutes =
-                new DashboardRoutes(dashboardController);
 
         RecurringPaymentController recurringPaymentController =
                 new RecurringPaymentController(
@@ -56,27 +61,15 @@ public class Main {
                         userDAO,
                         subcategoryDAO
                 );
-        RecurringPaymentRoutes recurringPaymentRoutes =
-                new RecurringPaymentRoutes(recurringPaymentController);
 
         CategoryController categoryController =
                 new CategoryController(categoryDAO, userDAO);
-        CategoryRoutes categoryRoutes =
-                new CategoryRoutes(categoryController);
 
         SubcategoryController subcategoryController =
                 new SubcategoryController(subcategoryDAO, categoryDAO);
-        SubcategoryRoutes subcategoryRoutes =
-                new SubcategoryRoutes(subcategoryController);
 
-        CurrencyService currencyService = new CurrencyService();
         CurrencyController currencyController =
                 new CurrencyController(currencyService);
-        CurrencyRoutes currencyRoutes =
-                new CurrencyRoutes(currencyController);
-
-        SecurityMiddleware securityMiddleware =
-                new SecurityMiddleware(tokenService);
 
         TransactionPageController transactionPageController =
                 new TransactionPageController(
@@ -84,8 +77,6 @@ public class Main {
                         userDAO,
                         subcategoryDAO
                 );
-        TransactionPageRoutes transactionPageRoutes =
-                new TransactionPageRoutes(transactionPageController);
 
         BudgetPageController budgetPageController =
                 new BudgetPageController(
@@ -93,8 +84,6 @@ public class Main {
                         userDAO,
                         subcategoryDAO
                 );
-        BudgetPageRoutes budgetPageRoutes =
-                new BudgetPageRoutes(budgetPageController);
 
         RecurringPaymentPageController recurringPaymentPageController =
                 new RecurringPaymentPageController(
@@ -102,8 +91,6 @@ public class Main {
                         userDAO,
                         subcategoryDAO
                 );
-        RecurringPaymentPageRoutes recurringPaymentPageRoutes =
-                new RecurringPaymentPageRoutes(recurringPaymentPageController);
 
         CategoryPageController categoryPageController =
                 new CategoryPageController(
@@ -111,17 +98,48 @@ public class Main {
                         subcategoryDAO,
                         userDAO
                 );
-        CategoryPageRoutes categoryPageRoutes =
-                new CategoryPageRoutes(categoryPageController);
 
         AuthPageController authPageController =
                 new AuthPageController();
+
+        SecurityRoutes securityRoutes =
+                new SecurityRoutes(securityController);
+
+        TransactionRoutes transactionRoutes =
+                new TransactionRoutes(transactionController);
+
+        BudgetRoutes budgetRoutes =
+                new BudgetRoutes(budgetController);
+
+        DashboardRoutes dashboardRoutes =
+                new DashboardRoutes(dashboardController);
+
+        RecurringPaymentRoutes recurringPaymentRoutes =
+                new RecurringPaymentRoutes(recurringPaymentController);
+
+        CategoryRoutes categoryRoutes =
+                new CategoryRoutes(categoryController);
+
+        SubcategoryRoutes subcategoryRoutes =
+                new SubcategoryRoutes(subcategoryController);
+
+        CurrencyRoutes currencyRoutes =
+                new CurrencyRoutes(currencyController);
+
+        TransactionPageRoutes transactionPageRoutes =
+                new TransactionPageRoutes(transactionPageController);
+
+        BudgetPageRoutes budgetPageRoutes =
+                new BudgetPageRoutes(budgetPageController);
+
+        RecurringPaymentPageRoutes recurringPaymentPageRoutes =
+                new RecurringPaymentPageRoutes(recurringPaymentPageController);
+
+        CategoryPageRoutes categoryPageRoutes =
+                new CategoryPageRoutes(categoryPageController);
+
         AuthPageRoutes authPageRoutes =
                 new AuthPageRoutes(authPageController);
-
-        int port = System.getenv("PORT") != null
-                ? Integer.parseInt(System.getenv("PORT"))
-                : 7070;
 
         Javalin app = Javalin.create(config -> {
             config.fileRenderer(new JavalinThymeleaf());
@@ -131,8 +149,7 @@ public class Main {
                 staticFiles.directory = "/public";
                 staticFiles.location = Location.CLASSPATH;
             });
-
-        }).start(port);
+        });
 
         app.before("/api/budgets", securityMiddleware::validateToken);
         app.before("/api/budgets/*", securityMiddleware::validateToken);
@@ -178,10 +195,13 @@ public class Main {
         categoryRoutes.register(app);
         subcategoryRoutes.register(app);
         currencyRoutes.register(app);
+
         transactionPageRoutes.register(app);
         budgetPageRoutes.register(app);
         recurringPaymentPageRoutes.register(app);
         categoryPageRoutes.register(app);
         authPageRoutes.register(app);
+
+        return app;
     }
 }

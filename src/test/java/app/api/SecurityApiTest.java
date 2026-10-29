@@ -1,23 +1,38 @@
 package app.api;
 
-import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 
-public class SecurityApiTest {
+public class SecurityApiTest extends BaseApiTest {
 
     @BeforeAll
-    static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 7070;
+    static void createTestUser() {
+
+        String body = """
+                {
+                  "name": "Anna",
+                  "email": "anna@test.dk",
+                  "password": "123456"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when()
+                .post("/auth/register")
+                .then()
+                .statusCode(201);
     }
 
     @Test
     void loginTest() {
+
         String body = """
                 {
                   "email": "anna@test.dk",
@@ -39,6 +54,7 @@ public class SecurityApiTest {
 
     @Test
     void wrongPasswordTest() {
+
         String body = """
                 {
                   "email": "anna@test.dk",
@@ -57,6 +73,7 @@ public class SecurityApiTest {
 
     @Test
     void meWithoutTokenTest() {
+
         given()
                 .when()
                 .get("/auth/me")

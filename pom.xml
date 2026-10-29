@@ -202,6 +202,20 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+
+                <configuration>
+                    <environmentVariables>
+                        <JWT_SECRET>
+                            test-jwt-secret-only-for-automated-tests-123456789
+                        </JWT_SECRET>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.6.0</version>
                 <executions>

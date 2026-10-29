@@ -28,11 +28,11 @@ public class TransactionPageController {
 
         Integer month = ctx.queryParam("month") != null
                 ? Integer.parseInt(ctx.queryParam("month"))
-                : 8;
+                : LocalDate.now().getMonthValue();
 
         Integer year = ctx.queryParam("year") != null
                 ? Integer.parseInt(ctx.queryParam("year"))
-                : 2026;
+                : LocalDate.now().getYear();
 
         List<Transaction> transactions =
                 transactionDAO.findByUserAndMonth(
@@ -90,13 +90,14 @@ public class TransactionPageController {
         User user = userDAO.findById(userId);
 
         Subcategory subcategory =
-                subcategoryDAO.findById(subcategoryId);
+                subcategoryDAO.findByIdAndUserId(
+                        subcategoryId,
+                        userId
+                );
 
-        if (subcategory == null ||
-                !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+        if (user == null || subcategory == null) {
             ctx.status(404);
-            ctx.result("Underkategorien blev ikke fundet");
+            ctx.result("Bruger eller underkategori blev ikke fundet");
             return;
         }
 
@@ -119,14 +120,16 @@ public class TransactionPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
         Transaction transaction =
-                transactionDAO.findById(id);
+                transactionDAO.findByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (transaction == null ||
-                !transaction.getUser().getId().equals(userId)) {
-
+        if (transaction == null) {
             ctx.status(404);
             ctx.result("Transaktionen blev ikke fundet");
             return;
@@ -149,14 +152,16 @@ public class TransactionPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
         Transaction transaction =
-                transactionDAO.findById(id);
+                transactionDAO.findByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (transaction == null ||
-                !transaction.getUser().getId().equals(userId)) {
-
+        if (transaction == null) {
             ctx.status(404);
             ctx.result("Transaktionen blev ikke fundet");
             return;
@@ -185,11 +190,12 @@ public class TransactionPageController {
                 Integer.parseInt(ctx.formParam("subcategoryId"));
 
         Subcategory subcategory =
-                subcategoryDAO.findById(subcategoryId);
+                subcategoryDAO.findByIdAndUserId(
+                        subcategoryId,
+                        userId
+                );
 
-        if (subcategory == null ||
-                !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+        if (subcategory == null) {
             ctx.status(404);
             ctx.result("Underkategorien blev ikke fundet");
             return;
@@ -211,20 +217,20 @@ public class TransactionPageController {
         Integer id =
                 Integer.parseInt(ctx.pathParam("id"));
 
-        Integer userId = ctx.attribute("userId");
+        Integer userId =
+                ctx.attribute("userId");
 
-        Transaction transaction =
-                transactionDAO.findById(id);
+        boolean deleted =
+                transactionDAO.deleteByIdAndUserId(
+                        id,
+                        userId
+                );
 
-        if (transaction == null ||
-                !transaction.getUser().getId().equals(userId)) {
-
+        if (!deleted) {
             ctx.status(404);
             ctx.result("Transaktionen blev ikke fundet");
             return;
         }
-
-        transactionDAO.deleteById(id);
 
         ctx.redirect("/transactions");
     }

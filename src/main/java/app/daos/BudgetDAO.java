@@ -8,16 +8,17 @@ import org.hibernate.SessionFactory;
 import java.util.List;
 
 public class BudgetDAO {
-    private final SessionFactory sessionFactory;
+
+    private final SessionFactory sf;
 
     public BudgetDAO() {
-        this.sessionFactory = HibernateConfig.getSessionFactory();
+        this.sf = HibernateConfig.getSessionFactory();
     }
 
     // CREATE
     public Budget create(Budget budget) {
-        try (Session session = sessionFactory.openSession()) {
-            session.getTransaction().begin();
+        try (Session session = sf.openSession()) {
+            session.beginTransaction();
             session.persist(budget);
             session.getTransaction().commit();
             return budget;
@@ -26,75 +27,31 @@ public class BudgetDAO {
 
     // READ BY ID
     public Budget findById(Integer id) {
-        try (Session session = sessionFactory.openSession()) {
+        try (Session session = sf.openSession()) {
             return session.find(Budget.class, id);
         }
     }
 
-    // READ ALL
-    public List<Budget> findAll() {
-        try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("FROM Budget", Budget.class)
-                    .getResultList();
-        }
-    }
-
-    // UPDATE
-    public Budget update(Budget budget) {
-        try (Session session = sessionFactory.openSession()) {
-            session.getTransaction().begin();
-            Budget updated = session.merge(budget);
-            session.getTransaction().commit();
-            return updated;
-        }
-    }
-
-    public Budget findByUserAndMonth(Integer userId, Integer month, Integer year) {
-        try (Session session = sessionFactory.openSession()) {
+    // READ BY ID + USER
+    public Budget findByIdAndUserId(Integer id, Integer userId) {
+        try (Session session = sf.openSession()) {
             return session.createQuery(
-                            "FROM Budget b WHERE b.user.id = :userId " +
-                                    "AND b.month = :month AND b.year = :year",
-                            Budget.class)
-                    .setParameter("userId", userId)
-                    .setParameter("month", month)
-                    .setParameter("year", year)
-                    .getResultStream()
-                    .findFirst()
-                    .orElse(null);
-        }
-    }
-    public Budget findByUserMonthAndSubcategory(
-            Integer userId,
-            Integer month,
-            Integer year,
-            Integer subcategoryId) {
-
-        try (Session session = sessionFactory.openSession()) {
-
-            return session.createQuery(
-                            "FROM Budget b " +
-                                    "WHERE b.user.id = :userId " +
-                                    "AND b.month = :month " +
-                                    "AND b.year = :year " +
-                                    "AND b.subcategory.id = :subcategoryId",
+                            "FROM Budget b WHERE b.id = :id AND b.user.id = :userId",
                             Budget.class
                     )
+                    .setParameter("id", id)
                     .setParameter("userId", userId)
-                    .setParameter("month", month)
-                    .setParameter("year", year)
-                    .setParameter("subcategoryId", subcategoryId)
-                    .getResultStream()
-                    .findFirst()
-                    .orElse(null);
+                    .uniqueResult();
         }
     }
+
+    // READ ALL FOR USER AND MONTH
     public List<Budget> findAllByUserAndMonth(
             Integer userId,
             Integer month,
             Integer year) {
 
-        try (Session session = sessionFactory.openSession()) {
-
+        try (Session session = sf.openSession()) {
             return session.createQuery(
                             "FROM Budget b " +
                                     "WHERE b.user.id = :userId " +
@@ -110,29 +67,61 @@ public class BudgetDAO {
         }
     }
 
+    // READ BY USER + MONTH + SUBCATEGORY
+    public Budget findByUserMonthAndSubcategory(
+            Integer userId,
+            Integer month,
+            Integer year,
+            Integer subcategoryId) {
+
+        try (Session session = sf.openSession()) {
+            return session.createQuery(
+                            "FROM Budget b " +
+                                    "WHERE b.user.id = :userId " +
+                                    "AND b.month = :month " +
+                                    "AND b.year = :year " +
+                                    "AND b.subcategory.id = :subcategoryId",
+                            Budget.class
+                    )
+                    .setParameter("userId", userId)
+                    .setParameter("month", month)
+                    .setParameter("year", year)
+                    .setParameter("subcategoryId", subcategoryId)
+                    .uniqueResult();
+        }
+    }
+
+    // UPDATE
+    public Budget update(Budget budget) {
+        try (Session session = sf.openSession()) {
+            session.beginTransaction();
+            Budget updated = session.merge(budget);
+            session.getTransaction().commit();
+            return updated;
+        }
+    }
+
     // DELETE
-    public void delete(Integer id) {
-        try (Session session = sessionFactory.openSession()) {
-            session.getTransaction().begin();
-            Budget budget = session.find(Budget.class, id);
-            if (budget != null) {
-                session.remove(budget);
-            }
-            session.getTransaction().commit();
-        }
-    }
-    public void deleteById(Integer id) {
-        try (Session session = sessionFactory.openSession()) {
-            session.getTransaction().begin();
+    public boolean deleteByIdAndUserId(Integer id, Integer userId) {
+        try (Session session = sf.openSession()) {
+            session.beginTransaction();
 
-            Budget budget = session.find(Budget.class, id);
+            Budget budget = session.createQuery(
+                            "FROM Budget b WHERE b.id = :id AND b.user.id = :userId",
+                            Budget.class
+                    )
+                    .setParameter("id", id)
+                    .setParameter("userId", userId)
+                    .uniqueResult();
 
-            if (budget != null) {
-                session.remove(budget);
+            if (budget == null) {
+                session.getTransaction().commit();
+                return false;
             }
 
+            session.remove(budget);
             session.getTransaction().commit();
+            return true;
         }
     }
-
 }

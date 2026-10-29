@@ -1,6 +1,5 @@
 package app.api;
 
-import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -8,17 +7,57 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
-public class RecurringPaymentApiTest {
+public class RecurringPaymentApiTest extends BaseApiTest {
+
+    private static String token;
+    private static Integer subcategoryId;
 
     @BeforeAll
-    static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 7070;
+    static void setupTestData() {
+
+        token = TestAuthHelper.registerAndGetAnnaToken();
+
+        String categoryBody = """
+                {
+                  "name": "Abonnementer",
+                  "type": "EXPENSE"
+                }
+                """;
+
+        Integer categoryId = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.JSON)
+                .body(categoryBody)
+                .when()
+                .post("/api/categories")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+
+        String subcategoryBody = """
+                {
+                  "name": "Streaming",
+                  "category": {
+                    "id": %d
+                  }
+                }
+                """.formatted(categoryId);
+
+        subcategoryId = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.JSON)
+                .body(subcategoryBody)
+                .when()
+                .post("/api/subcategories")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     @Test
     void getAllRecurringPaymentsTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -30,7 +69,6 @@ public class RecurringPaymentApiTest {
 
     @Test
     void createUpdateAndDeleteRecurringPaymentTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         String createBody = """
                 {
@@ -41,10 +79,10 @@ public class RecurringPaymentApiTest {
                   "startDate": "2026-10-27",
                   "nextPaymentDate": "2026-11-27",
                   "subcategory": {
-                    "id": 13
+                    "id": %d
                   }
                 }
-                """;
+                """.formatted(subcategoryId);
 
         Integer id = given()
                 .header("Authorization", "Bearer " + token)
@@ -67,10 +105,10 @@ public class RecurringPaymentApiTest {
                   "startDate": "2026-10-27",
                   "nextPaymentDate": "2026-11-27",
                   "subcategory": {
-                    "id": 13
+                    "id": %d
                   }
                 }
-                """;
+                """.formatted(subcategoryId);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -80,7 +118,10 @@ public class RecurringPaymentApiTest {
                 .put("/api/recurring-payments/" + id)
                 .then()
                 .statusCode(200)
-                .body("name", equalTo("Test abonnement opdateret"));
+                .body(
+                        "name",
+                        equalTo("Test abonnement opdateret")
+                );
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -92,6 +133,7 @@ public class RecurringPaymentApiTest {
 
     @Test
     void recurringPaymentsWithoutTokenTest() {
+
         given()
                 .when()
                 .get("/api/recurring-payments")

@@ -1,6 +1,5 @@
 package app.api;
 
-import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -8,17 +7,37 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
-public class SubcategoryApiTest {
+public class SubcategoryApiTest extends BaseApiTest {
+
+    private static String token;
+    private static Integer categoryId;
 
     @BeforeAll
-    static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 7070;
+    static void setupTestData() {
+
+        token = TestAuthHelper.registerAndGetAnnaToken();
+
+        String categoryBody = """
+                {
+                  "name": "Test kategori",
+                  "type": "EXPENSE"
+                }
+                """;
+
+        categoryId = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.JSON)
+                .body(categoryBody)
+                .when()
+                .post("/api/categories")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     @Test
     void getAllSubcategoriesTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -30,16 +49,15 @@ public class SubcategoryApiTest {
 
     @Test
     void createAndDeleteSubcategoryTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         String body = """
                 {
                   "name": "Test underkategori",
                   "category": {
-                    "id": 13
+                    "id": %d
                   }
                 }
-                """;
+                """.formatted(categoryId);
 
         Integer id = given()
                 .header("Authorization", "Bearer " + token)
@@ -63,6 +81,7 @@ public class SubcategoryApiTest {
 
     @Test
     void subcategoriesWithoutTokenTest() {
+
         given()
                 .when()
                 .get("/api/subcategories")

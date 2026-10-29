@@ -1,6 +1,5 @@
 package app.api;
 
-import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -8,17 +7,57 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
-public class TransactionApiTest {
+public class TransactionApiTest extends BaseApiTest {
+
+    private static String token;
+    private static Integer subcategoryId;
 
     @BeforeAll
-    static void setup() {
-        RestAssured.baseURI = "http://localhost";
-        RestAssured.port = 7070;
+    static void setupTestData() {
+
+        token = TestAuthHelper.registerAndGetAnnaToken();
+
+        String categoryBody = """
+                {
+                  "name": "Mad",
+                  "type": "EXPENSE"
+                }
+                """;
+
+        Integer categoryId = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.JSON)
+                .body(categoryBody)
+                .when()
+                .post("/api/categories")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
+
+        String subcategoryBody = """
+        {
+          "name": "Dagligvarer",
+          "category": {
+            "id": %d
+          }
+        }
+        """.formatted(categoryId);
+
+        subcategoryId = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.JSON)
+                .body(subcategoryBody)
+                .when()
+                .post("/api/subcategories")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("id");
     }
 
     @Test
     void getAllTransactionsTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -30,7 +69,6 @@ public class TransactionApiTest {
 
     @Test
     void createUpdateAndDeleteTransactionTest() {
-        String token = TestAuthHelper.getAnnaToken();
 
         String createBody = """
                 {
@@ -38,9 +76,9 @@ public class TransactionApiTest {
                   "date": "2026-10-27",
                   "type": "EXPENSE",
                   "description": "API test køb",
-                  "subcategoryId": 13
+                  "subcategoryId": %d
                 }
-                """;
+                """.formatted(subcategoryId);
 
         Integer id = given()
                 .header("Authorization", "Bearer " + token)
@@ -51,7 +89,7 @@ public class TransactionApiTest {
                 .then()
                 .statusCode(201)
                 .body("description", equalTo("API test køb"))
-                .body("subcategoryId", equalTo(13))
+                .body("subcategoryId", equalTo(subcategoryId))
                 .extract()
                 .path("id");
 
@@ -61,9 +99,9 @@ public class TransactionApiTest {
                   "date": "2026-10-27",
                   "type": "EXPENSE",
                   "description": "API test køb opdateret",
-                  "subcategoryId": 13
+                  "subcategoryId": %d
                 }
-                """;
+                """.formatted(subcategoryId);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -73,7 +111,14 @@ public class TransactionApiTest {
                 .put("/api/transactions/" + id)
                 .then()
                 .statusCode(200)
-                .body("description", equalTo("API test køb opdateret"));
+                .body(
+                        "description",
+                        equalTo("API test køb opdateret")
+                )
+                .body(
+                        "subcategoryId",
+                        equalTo(subcategoryId)
+                );
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -85,6 +130,7 @@ public class TransactionApiTest {
 
     @Test
     void transactionsWithoutTokenTest() {
+
         given()
                 .when()
                 .get("/api/transactions")

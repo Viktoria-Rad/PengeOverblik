@@ -1,49 +1,63 @@
 package app.daos;
 
 import app.config.HibernateConfig;
+import app.dtos.CategoryExpense;
 import app.entities.Transaction;
 import app.enums.TransactionType;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import app.dtos.CategoryExpense;
-import java.util.List;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+
 public class TransactionDAO {
 
-    private final SessionFactory sessionFactory;
+    private final SessionFactory sf;
 
     public TransactionDAO() {
-        this.sessionFactory = HibernateConfig.getSessionFactory();
+        this.sf = HibernateConfig.getSessionFactory();
     }
 
     public TransactionDAO(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
+        this.sf = sessionFactory;
     }
 
     // CREATE
     public Transaction create(Transaction transaction) {
-        try (Session session = sessionFactory.openSession()) {
-            session.getTransaction().begin();
-
+        try (Session session = sf.openSession()) {
+            session.beginTransaction();
             session.persist(transaction);
-
             session.getTransaction().commit();
-
             return transaction;
         }
     }
 
     // READ BY ID
     public Transaction findById(Integer id) {
-        try (Session session = sessionFactory.openSession()) {
+        try (Session session = sf.openSession()) {
             return session.find(Transaction.class, id);
+        }
+    }
+
+    // READ BY ID + USER
+    public Transaction findByIdAndUserId(Integer id, Integer userId) {
+        try (Session session = sf.openSession()) {
+            return session.createQuery(
+                            "FROM Transaction t " +
+                                    "WHERE t.id = :id " +
+                                    "AND t.user.id = :userId",
+                            Transaction.class
+                    )
+                    .setParameter("id", id)
+                    .setParameter("userId", userId)
+                    .uniqueResult();
         }
     }
 
     // READ ALL
     public List<Transaction> findAll() {
-        try (Session session = sessionFactory.openSession()) {
+        try (Session session = sf.openSession()) {
             return session.createQuery(
                     "FROM Transaction",
                     Transaction.class
@@ -53,7 +67,7 @@ public class TransactionDAO {
 
     // READ BY USER
     public List<Transaction> findByUserId(Integer userId) {
-        try (Session session = sessionFactory.openSession()) {
+        try (Session session = sf.openSession()) {
             return session.createQuery(
                             "FROM Transaction t " +
                                     "WHERE t.user.id = :userId",
@@ -69,7 +83,7 @@ public class TransactionDAO {
             Integer userId,
             Integer subcategoryId) {
 
-        try (Session session = sessionFactory.openSession()) {
+        try (Session session = sf.openSession()) {
             return session.createQuery(
                             "FROM Transaction t " +
                                     "WHERE t.user.id = :userId " +
@@ -88,7 +102,7 @@ public class TransactionDAO {
             Integer month,
             Integer year) {
 
-        try (Session session = sessionFactory.openSession()) {
+        try (Session session = sf.openSession()) {
             return session.createQuery(
                             "FROM Transaction t " +
                                     "WHERE t.user.id = :userId " +
@@ -110,20 +124,20 @@ public class TransactionDAO {
             Integer month,
             Integer year) {
 
-        try (Session session = sessionFactory.openSession()) {
+        try (Session session = sf.openSession()) {
 
             List<Object[]> results = session.createQuery("""
-                        SELECT c.name, SUM(t.amount)
-                        FROM Transaction t
-                        JOIN t.subcategory s
-                        JOIN s.category c
-                        WHERE t.user.id = :userId
-                        AND t.type = :type
-                        AND MONTH(t.date) = :month
-                        AND YEAR(t.date) = :year
-                        GROUP BY c.id, c.name
-                        ORDER BY SUM(t.amount) DESC
-                        """,
+                    SELECT c.name, SUM(t.amount)
+                    FROM Transaction t
+                    JOIN t.subcategory s
+                    JOIN s.category c
+                    WHERE t.user.id = :userId
+                    AND t.type = :type
+                    AND MONTH(t.date) = :month
+                    AND YEAR(t.date) = :year
+                    GROUP BY c.id, c.name
+                    ORDER BY SUM(t.amount) DESC
+                    """,
                             Object[].class
                     )
                     .setParameter("userId", userId)
@@ -138,7 +152,6 @@ public class TransactionDAO {
 
             return results.stream()
                     .map(result -> {
-
                         String categoryName = (String) result[0];
                         BigDecimal amount = (BigDecimal) result[1];
 
@@ -163,30 +176,38 @@ public class TransactionDAO {
 
     // UPDATE
     public Transaction update(Transaction transaction) {
-        try (Session session = sessionFactory.openSession()) {
-            session.getTransaction().begin();
-
+        try (Session session = sf.openSession()) {
+            session.beginTransaction();
             Transaction updated = session.merge(transaction);
-
             session.getTransaction().commit();
-
             return updated;
         }
     }
 
-    // DELETE
-    public void deleteById(Integer id) {
-        try (Session session = sessionFactory.openSession()) {
-            session.getTransaction().begin();
+    // DELETE BY ID + USER
+    public boolean deleteByIdAndUserId(Integer id, Integer userId) {
+        try (Session session = sf.openSession()) {
+            session.beginTransaction();
 
-            Transaction transaction =
-                    session.find(Transaction.class, id);
+            Transaction transaction = session.createQuery(
+                            "FROM Transaction t " +
+                                    "WHERE t.id = :id " +
+                                    "AND t.user.id = :userId",
+                            Transaction.class
+                    )
+                    .setParameter("id", id)
+                    .setParameter("userId", userId)
+                    .uniqueResult();
 
-            if (transaction != null) {
-                session.remove(transaction);
+            if (transaction == null) {
+                session.getTransaction().commit();
+                return false;
             }
 
+            session.remove(transaction);
             session.getTransaction().commit();
+
+            return true;
         }
     }
 }

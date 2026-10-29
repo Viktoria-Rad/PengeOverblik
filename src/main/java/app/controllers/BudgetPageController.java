@@ -22,103 +22,65 @@ public class BudgetPageController {
     private final SubcategoryDAO subcategoryDAO;
 
     public void showBudgets(Context ctx) {
+        Integer userId=ctx.attribute("userId");
+        int month=ctx.queryParam("month")!=null?Integer.parseInt(ctx.queryParam("month")):LocalDate.now().getMonthValue();
+        int year=ctx.queryParam("year")!=null?Integer.parseInt(ctx.queryParam("year")):LocalDate.now().getYear();
 
-        Integer userId = ctx.attribute("userId");
+        List<Budget> budgets=budgetDAO.findAllByUserAndMonth(userId,month,year);
+        BigDecimal totalBudget=budgets.stream()
+                .map(Budget::getAmount)
+                .reduce(BigDecimal.ZERO,BigDecimal::add);
 
-        int month = ctx.queryParam("month") != null
-                ? Integer.parseInt(ctx.queryParam("month"))
-                : LocalDate.now().getMonthValue();
-
-        int year = ctx.queryParam("year") != null
-                ? Integer.parseInt(ctx.queryParam("year"))
-                : LocalDate.now().getYear();
-
-        List<Budget> budgets =
-                budgetDAO.findAllByUserAndMonth(
-                        userId,
-                        month,
-                        year
-                );
-
-        ctx.render(
-                "budget.html",
-                Map.of(
-                        "budgets", budgets,
-                        "month", month,
-                        "year", year
-                )
-        );
+        ctx.render("/templates/budget.html",Map.of(
+                "budgets",budgets,
+                "totalBudget",totalBudget,
+                "month",month,
+                "year",year
+        ));
     }
 
     public void showCreateForm(Context ctx) {
+        Integer userId=ctx.attribute("userId");
+        int month=ctx.queryParam("month")!=null?Integer.parseInt(ctx.queryParam("month")):LocalDate.now().getMonthValue();
+        int year=ctx.queryParam("year")!=null?Integer.parseInt(ctx.queryParam("year")):LocalDate.now().getYear();
 
-        Integer userId = ctx.attribute("userId");
+        List<Subcategory> subcategories=subcategoryDAO.findByUserId(userId);
 
-        int month = ctx.queryParam("month") != null
-                ? Integer.parseInt(ctx.queryParam("month"))
-                : LocalDate.now().getMonthValue();
-
-        int year = ctx.queryParam("year") != null
-                ? Integer.parseInt(ctx.queryParam("year"))
-                : LocalDate.now().getYear();
-
-        List<Subcategory> subcategories =
-                subcategoryDAO.findByUserId(userId);
-
-        ctx.render(
-                "budget-form.html",
-                Map.of(
-                        "subcategories", subcategories,
-                        "month", month,
-                        "year", year
-                )
-        );
+        ctx.render("/templates/budget-form.html",Map.of(
+                "subcategories",subcategories,
+                "month",month,
+                "year",year
+        ));
     }
 
     public void create(Context ctx) {
+        Integer userId=ctx.attribute("userId");
+        BigDecimal amount=new BigDecimal(ctx.formParam("amount"));
+        Integer month=Integer.parseInt(ctx.formParam("month"));
+        Integer year=Integer.parseInt(ctx.formParam("year"));
+        Integer subcategoryId=Integer.parseInt(ctx.formParam("subcategoryId"));
 
-        Integer userId = ctx.attribute("userId");
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
+            ctx.redirect("/budget?month="+month+"&year="+year+"&error=amount");
+            return;
+        }
 
-        BigDecimal amount =
-                new BigDecimal(ctx.formParam("amount"));
+        User user=userDAO.findById(userId);
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(subcategoryId,userId);
 
-        Integer month =
-                Integer.parseInt(ctx.formParam("month"));
-
-        Integer year =
-                Integer.parseInt(ctx.formParam("year"));
-
-        Integer subcategoryId =
-                Integer.parseInt(ctx.formParam("subcategoryId"));
-
-        User user =
-                userDAO.findById(userId);
-
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        subcategoryId,
-                        userId
-                );
-
-        if (user == null || subcategory == null) {
+        if(user==null||subcategory==null){
             ctx.status(404);
             return;
         }
 
-        Budget existing =
-                budgetDAO.findByUserMonthAndSubcategory(
-                        userId,
-                        month,
-                        year,
-                        subcategoryId
-                );
+        Budget existing=budgetDAO.findByUserMonthAndSubcategory(userId,month,year,subcategoryId);
 
-        if (existing != null) {
-            ctx.status(409);
+        if(existing!=null){
+            ctx.status(409).result("Budgettet findes allerede");
             return;
         }
 
-        Budget budget = Budget.builder()
+        Budget budget=Budget.builder()
                 .amount(amount)
                 .month(month)
                 .year(year)
@@ -127,83 +89,60 @@ public class BudgetPageController {
                 .build();
 
         budgetDAO.create(budget);
-
-        ctx.redirect(
-                "/budget?month=" + month +
-                        "&year=" + year
-        );
+        ctx.redirect("/budget?month="+month+"&year="+year);
     }
 
     public void showEditForm(Context ctx) {
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        Budget budget=budgetDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        Budget budget =
-                budgetDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (budget == null) {
+        if(budget==null){
             ctx.status(404);
             return;
         }
 
-        List<Subcategory> subcategories =
-                subcategoryDAO.findByUserId(userId);
+        List<Subcategory> subcategories=subcategoryDAO.findByUserId(userId);
 
-        ctx.render(
-                "budget-edit.html",
-                Map.of(
-                        "budget", budget,
-                        "subcategories", subcategories
-                )
-        );
+        ctx.render("/templates/budget-edit.html",Map.of(
+                "budget",budget,
+                "subcategories",subcategories
+        ));
     }
 
     public void update(Context ctx) {
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
+        Budget budget=budgetDAO.findByIdAndUserId(id,userId);
 
-        Integer userId =
-                ctx.attribute("userId");
-
-        Budget budget =
-                budgetDAO.findByIdAndUserId(
-                        id,
-                        userId
-                );
-
-        if (budget == null) {
+        if(budget==null){
             ctx.status(404);
             return;
         }
 
-        BigDecimal amount =
-                new BigDecimal(ctx.formParam("amount"));
+        BigDecimal amount=new BigDecimal(ctx.formParam("amount"));
+        Integer month=Integer.parseInt(ctx.formParam("month"));
+        Integer year=Integer.parseInt(ctx.formParam("year"));
+        Integer subcategoryId=Integer.parseInt(ctx.formParam("subcategoryId"));
 
-        Integer month =
-                Integer.parseInt(ctx.formParam("month"));
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
+            ctx.status(400).result("Beløbet skal være større end 0");
+            return;
+        }
 
-        Integer year =
-                Integer.parseInt(ctx.formParam("year"));
+        Subcategory subcategory=subcategoryDAO.findByIdAndUserId(subcategoryId,userId);
 
-        Integer subcategoryId =
-                Integer.parseInt(ctx.formParam("subcategoryId"));
-
-        Subcategory subcategory =
-                subcategoryDAO.findByIdAndUserId(
-                        subcategoryId,
-                        userId
-                );
-
-        if (subcategory == null) {
+        if(subcategory==null){
             ctx.status(404);
+            return;
+        }
+
+        Budget duplicate=budgetDAO.findByUserMonthAndSubcategory(userId,month,year,subcategoryId);
+
+        if(duplicate!=null&&!duplicate.getId().equals(id)){
+            ctx.status(409).result("Budgettet findes allerede");
             return;
         }
 
@@ -213,35 +152,16 @@ public class BudgetPageController {
         budget.setSubcategory(subcategory);
 
         budgetDAO.update(budget);
-
-        ctx.redirect(
-                "/budget?month=" + month +
-                        "&year=" + year
-        );
+        ctx.redirect("/budget?month="+month+"&year="+year);
     }
 
     public void delete(Context ctx) {
+        Integer id=Integer.parseInt(ctx.pathParam("id"));
+        Integer userId=ctx.attribute("userId");
+        Integer month=Integer.parseInt(ctx.formParam("month"));
+        Integer year=Integer.parseInt(ctx.formParam("year"));
 
-        Integer id =
-                Integer.parseInt(ctx.pathParam("id"));
-
-        Integer userId =
-                ctx.attribute("userId");
-
-        Integer month =
-                Integer.parseInt(ctx.formParam("month"));
-
-        Integer year =
-                Integer.parseInt(ctx.formParam("year"));
-
-        budgetDAO.deleteByIdAndUserId(
-                id,
-                userId
-        );
-
-        ctx.redirect(
-                "/budget?month=" + month +
-                        "&year=" + year
-        );
+        budgetDAO.deleteByIdAndUserId(id,userId);
+        ctx.redirect("/budget?month="+month+"&year="+year);
     }
 }

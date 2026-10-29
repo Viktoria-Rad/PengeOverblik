@@ -8,8 +8,11 @@ import app.dtos.CreateBudgetDTO;
 import app.entities.Budget;
 import app.entities.Subcategory;
 import app.entities.User;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -30,31 +33,51 @@ public class BudgetController {
     }
 
     public void getAll(Context ctx) {
-        Integer userId = ctx.attribute("userId");
+        try {
+            Integer userId = ctx.attribute("userId");
 
-        int month = ctx.queryParam("month") != null
-                ? Integer.parseInt(ctx.queryParam("month"))
-                : 8;
+            int month = ctx.queryParam("month") != null
+                    ? Integer.parseInt(ctx.queryParam("month"))
+                    : LocalDate.now().getMonthValue();
 
-        int year = ctx.queryParam("year") != null
-                ? Integer.parseInt(ctx.queryParam("year"))
-                : 2026;
+            int year = ctx.queryParam("year") != null
+                    ? Integer.parseInt(ctx.queryParam("year"))
+                    : LocalDate.now().getYear();
 
-        List<Budget> budgets =
-                budgetDAO.findAllByUserAndMonth(userId, month, year);
+            if (month < 1 || month > 12) {
+                ctx.status(400).json(Map.of(
+                        "message", "Måneden skal være mellem 1 og 12"
+                ));
+                return;
+            }
 
-        List<BudgetDTO> budgetDTOs = budgets.stream()
-                .map(budget -> new BudgetDTO(
-                        budget.getId(),
-                        budget.getAmount(),
-                        budget.getMonth(),
-                        budget.getYear(),
-                        budget.getSubcategory().getId(),
-                        budget.getSubcategory().getName()
-                ))
-                .toList();
+            if (year < 2020 || year > 2100) {
+                ctx.status(400).json(Map.of(
+                        "message", "Årstallet er ugyldigt"
+                ));
+                return;
+            }
 
-        ctx.json(budgetDTOs);
+            List<Budget> budgets =
+                    budgetDAO.findAllByUserAndMonth(userId, month, year);
+
+            List<BudgetDTO> budgetDTOs = budgets.stream()
+                    .map(this::toDTO)
+                    .toList();
+
+            ctx.json(budgetDTOs);
+
+        } catch (NumberFormatException e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Måned og år skal være tal"
+            ));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(500).json(Map.of(
+                    "message", "Der opstod en fejl"
+            ));
+        }
     }
 
     public void getById(Context ctx) {
@@ -62,7 +85,8 @@ public class BudgetController {
             int id = Integer.parseInt(ctx.pathParam("id"));
             Integer userId = ctx.attribute("userId");
 
-            Budget budget = budgetDAO.findByIdAndUserId(id, userId);
+            Budget budget =
+                    budgetDAO.findByIdAndUserId(id, userId);
 
             if (budget == null) {
                 ctx.status(404).json(Map.of(
@@ -71,16 +95,12 @@ public class BudgetController {
                 return;
             }
 
-            BudgetDTO response = new BudgetDTO(
-                    budget.getId(),
-                    budget.getAmount(),
-                    budget.getMonth(),
-                    budget.getYear(),
-                    budget.getSubcategory().getId(),
-                    budget.getSubcategory().getName()
-            );
+            ctx.json(toDTO(budget));
 
-            ctx.json(response);
+        } catch (NumberFormatException e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldigt budget-id"
+            ));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -95,24 +115,11 @@ public class BudgetController {
             CreateBudgetDTO dto =
                     ctx.bodyAsClass(CreateBudgetDTO.class);
 
-            if (dto.amount() == null ||
-                    dto.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                ctx.status(400).json(Map.of(
-                        "message", "Beløbet skal være større end 0"
-                ));
-                return;
-            }
+            String validationError = validate(dto);
 
-            if (dto.month() < 1 || dto.month() > 12) {
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Måneden skal være mellem 1 og 12"
-                ));
-                return;
-            }
-
-            if (dto.year() < 2020 || dto.year() > 2100) {
-                ctx.status(400).json(Map.of(
-                        "message", "Årstallet er ugyldigt"
+                        "message", validationError
                 ));
                 return;
             }
@@ -121,20 +128,20 @@ public class BudgetController {
 
             User user = userDAO.findById(userId);
 
-            Subcategory subcategory =
-                    subcategoryDAO.findById(dto.subcategoryId());
-
-            if (user == null || subcategory == null) {
+            if (user == null) {
                 ctx.status(404).json(Map.of(
-                        "message", "Bruger eller underkategori blev ikke fundet"
+                        "message", "Brugeren blev ikke fundet"
                 ));
                 return;
             }
 
-            if (subcategory.getCategory() == null ||
-                    subcategory.getCategory().getUser() == null ||
-                    !subcategory.getCategory().getUser().getId().equals(userId)) {
+            Subcategory subcategory =
+                    subcategoryDAO.findByIdAndUserId(
+                            dto.subcategoryId(),
+                            userId
+                    );
 
+            if (subcategory == null) {
                 ctx.status(404).json(Map.of(
                         "message", "Underkategorien blev ikke fundet"
                 ));
@@ -167,20 +174,16 @@ public class BudgetController {
             Budget createdBudget =
                     budgetDAO.create(budget);
 
-            BudgetDTO response = new BudgetDTO(
-                    createdBudget.getId(),
-                    createdBudget.getAmount(),
-                    createdBudget.getMonth(),
-                    createdBudget.getYear(),
-                    createdBudget.getSubcategory().getId(),
-                    createdBudget.getSubcategory().getName()
-            );
+            ctx.status(201).json(toDTO(createdBudget));
 
-            ctx.status(201).json(response);
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
 
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Budgettet kunne ikke oprettes"
             ));
         }
@@ -204,38 +207,41 @@ public class BudgetController {
             CreateBudgetDTO dto =
                     ctx.bodyAsClass(CreateBudgetDTO.class);
 
-            if (dto.amount() == null ||
-                    dto.amount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                ctx.status(400).json(Map.of(
-                        "message", "Beløbet skal være større end 0"
-                ));
-                return;
-            }
+            String validationError = validate(dto);
 
-            if (dto.month() < 1 || dto.month() > 12) {
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Måneden skal være mellem 1 og 12"
-                ));
-                return;
-            }
-
-            if (dto.year() < 2020 || dto.year() > 2100) {
-                ctx.status(400).json(Map.of(
-                        "message", "Årstallet er ugyldigt"
+                        "message", validationError
                 ));
                 return;
             }
 
             Subcategory subcategory =
-                    subcategoryDAO.findById(dto.subcategoryId());
+                    subcategoryDAO.findByIdAndUserId(
+                            dto.subcategoryId(),
+                            userId
+                    );
 
-            if (subcategory == null ||
-                    subcategory.getCategory() == null ||
-                    subcategory.getCategory().getUser() == null ||
-                    !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+            if (subcategory == null) {
                 ctx.status(404).json(Map.of(
                         "message", "Underkategorien blev ikke fundet"
+                ));
+                return;
+            }
+
+            Budget duplicate =
+                    budgetDAO.findByUserMonthAndSubcategory(
+                            userId,
+                            dto.month(),
+                            dto.year(),
+                            dto.subcategoryId()
+                    );
+
+            if (duplicate != null &&
+                    !duplicate.getId().equals(id)) {
+
+                ctx.status(409).json(Map.of(
+                        "message", "Budgettet findes allerede"
                 ));
                 return;
             }
@@ -248,20 +254,21 @@ public class BudgetController {
             Budget updated =
                     budgetDAO.update(existing);
 
-            BudgetDTO response = new BudgetDTO(
-                    updated.getId(),
-                    updated.getAmount(),
-                    updated.getMonth(),
-                    updated.getYear(),
-                    updated.getSubcategory().getId(),
-                    updated.getSubcategory().getName()
-            );
+            ctx.json(toDTO(updated));
 
-            ctx.json(response);
+        } catch (NumberFormatException e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldigt budget-id"
+            ));
+
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
 
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Budgettet kunne ikke opdateres"
             ));
         }
@@ -284,11 +291,49 @@ public class BudgetController {
 
             ctx.status(204);
 
+        } catch (NumberFormatException e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldigt budget-id"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
             ctx.status(500).json(Map.of(
                     "message", "Budgettet kunne ikke slettes"
             ));
         }
+    }
+
+    private String validate(CreateBudgetDTO dto) {
+
+        if (dto.amount() == null ||
+                dto.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            return "Beløbet skal være større end 0";
+        }
+
+        if (dto.month() < 1 || dto.month() > 12) {
+            return "Måneden skal være mellem 1 og 12";
+        }
+
+        if (dto.year() < 2020 || dto.year() > 2100) {
+            return "Årstallet er ugyldigt";
+        }
+
+        if (dto.subcategoryId() == null) {
+            return "Underkategori skal angives";
+        }
+
+        return null;
+    }
+
+    private BudgetDTO toDTO(Budget budget) {
+        return new BudgetDTO(
+                budget.getId(),
+                budget.getAmount(),
+                budget.getMonth(),
+                budget.getYear(),
+                budget.getSubcategory().getId(),
+                budget.getSubcategory().getName()
+        );
     }
 }

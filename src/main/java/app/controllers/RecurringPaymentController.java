@@ -6,6 +6,7 @@ import app.daos.UserDAO;
 import app.entities.RecurringPayment;
 import app.entities.Subcategory;
 import app.entities.User;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import lombok.RequiredArgsConstructor;
 
@@ -76,50 +77,11 @@ public class RecurringPaymentController {
             RecurringPayment request =
                     ctx.bodyAsClass(RecurringPayment.class);
 
-            if (request.getName() == null ||
-                    request.getName().isBlank()) {
+            String validationError = validate(request);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Navn skal udfyldes"
-                ));
-                return;
-            }
-
-            if (request.getAmount() == null ||
-                    request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-
-                ctx.status(400).json(Map.of(
-                        "message", "Beløbet skal være større end 0"
-                ));
-                return;
-            }
-
-            if (request.getType() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Type skal angives"
-                ));
-                return;
-            }
-
-            if (request.getFrequency() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Frekvens skal angives"
-                ));
-                return;
-            }
-
-            if (request.getStartDate() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Startdato skal angives"
-                ));
-                return;
-            }
-
-            if (request.getSubcategory() == null ||
-                    request.getSubcategory().getId() == null) {
-
-                ctx.status(400).json(Map.of(
-                        "message", "Underkategori mangler"
+                        "message", validationError
                 ));
                 return;
             }
@@ -165,10 +127,15 @@ public class RecurringPaymentController {
 
             ctx.status(201).json(created);
 
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
 
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Betalingen kunne ikke oprettes"
             ));
         }
@@ -192,50 +159,11 @@ public class RecurringPaymentController {
             RecurringPayment request =
                     ctx.bodyAsClass(RecurringPayment.class);
 
-            if (request.getName() == null ||
-                    request.getName().isBlank()) {
+            String validationError = validate(request);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Navn skal udfyldes"
-                ));
-                return;
-            }
-
-            if (request.getAmount() == null ||
-                    request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-
-                ctx.status(400).json(Map.of(
-                        "message", "Beløbet skal være større end 0"
-                ));
-                return;
-            }
-
-            if (request.getType() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Type skal angives"
-                ));
-                return;
-            }
-
-            if (request.getFrequency() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Frekvens skal angives"
-                ));
-                return;
-            }
-
-            if (request.getStartDate() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Startdato skal angives"
-                ));
-                return;
-            }
-
-            if (request.getSubcategory() == null ||
-                    request.getSubcategory().getId() == null) {
-
-                ctx.status(400).json(Map.of(
-                        "message", "Underkategori mangler"
+                        "message", validationError
                 ));
                 return;
             }
@@ -273,10 +201,15 @@ public class RecurringPaymentController {
                     "message", "Ugyldigt betalings-id"
             ));
 
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
 
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Betalingen kunne ikke opdateres"
             ));
         }
@@ -311,5 +244,37 @@ public class RecurringPaymentController {
                     "message", "Betalingen kunne ikke slettes"
             ));
         }
+    }
+
+    private String validate(RecurringPayment request) {
+
+        if (request.getName() == null ||
+                request.getName().isBlank()) {
+            return "Navn skal udfyldes";
+        }
+
+        if (request.getAmount() == null ||
+                request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            return "Beløbet skal være større end 0";
+        }
+
+        if (request.getType() == null) {
+            return "Type skal angives";
+        }
+
+        if (request.getFrequency() == null) {
+            return "Frekvens skal angives";
+        }
+
+        if (request.getStartDate() == null) {
+            return "Startdato skal angives";
+        }
+
+        if (request.getSubcategory() == null ||
+                request.getSubcategory().getId() == null) {
+            return "Underkategori skal angives";
+        }
+
+        return null;
     }
 }

@@ -4,8 +4,10 @@ import app.daos.CategoryDAO;
 import app.daos.SubcategoryDAO;
 import app.entities.Category;
 import app.entities.Subcategory;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.List;
 import java.util.Map;
@@ -72,24 +74,22 @@ public class SubcategoryController {
             Subcategory request =
                     ctx.bodyAsClass(Subcategory.class);
 
-            if (request.getName() == null ||
-                    request.getName().isBlank() ||
-                    request.getCategory() == null ||
-                    request.getCategory().getId() == null) {
+            String validationError = validate(request);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Navn og kategori skal udfyldes"
+                        "message", validationError
                 ));
                 return;
             }
 
             Category category =
-                    categoryDAO.findById(request.getCategory().getId());
+                    categoryDAO.findByIdAndUserId(
+                            request.getCategory().getId(),
+                            userId
+                    );
 
-            if (category == null ||
-                    category.getUser() == null ||
-                    !category.getUser().getId().equals(userId)) {
-
+            if (category == null) {
                 ctx.status(404).json(Map.of(
                         "message", "Kategorien blev ikke fundet"
                 ));
@@ -106,10 +106,15 @@ public class SubcategoryController {
 
             ctx.status(201).json(created);
 
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
 
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Underkategorien kunne ikke oprettes"
             ));
         }
@@ -133,24 +138,22 @@ public class SubcategoryController {
             Subcategory request =
                     ctx.bodyAsClass(Subcategory.class);
 
-            if (request.getName() == null ||
-                    request.getName().isBlank() ||
-                    request.getCategory() == null ||
-                    request.getCategory().getId() == null) {
+            String validationError = validate(request);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Navn og kategori skal udfyldes"
+                        "message", validationError
                 ));
                 return;
             }
 
             Category category =
-                    categoryDAO.findById(request.getCategory().getId());
+                    categoryDAO.findByIdAndUserId(
+                            request.getCategory().getId(),
+                            userId
+                    );
 
-            if (category == null ||
-                    category.getUser() == null ||
-                    !category.getUser().getId().equals(userId)) {
-
+            if (category == null) {
                 ctx.status(404).json(Map.of(
                         "message", "Kategorien blev ikke fundet"
                 ));
@@ -170,10 +173,15 @@ public class SubcategoryController {
                     "message", "Ugyldigt underkategori-id"
             ));
 
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
 
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Underkategorien kunne ikke opdateres"
             ));
         }
@@ -202,9 +210,49 @@ public class SubcategoryController {
             ));
 
         } catch (Exception e) {
-            ctx.status(409).json(Map.of(
-                    "message", "Underkategorien er i brug og kan ikke slettes"
-            ));
+            e.printStackTrace();
+
+            if (isConstraintViolation(e)) {
+                ctx.status(409).json(Map.of(
+                        "message",
+                        "Underkategorien er i brug og kan ikke slettes"
+                ));
+            } else {
+                ctx.status(500).json(Map.of(
+                        "message",
+                        "Underkategorien kunne ikke slettes"
+                ));
+            }
         }
+    }
+
+    private String validate(Subcategory request) {
+
+        if (request.getName() == null ||
+                request.getName().isBlank()) {
+            return "Navn skal udfyldes";
+        }
+
+        if (request.getCategory() == null ||
+                request.getCategory().getId() == null) {
+            return "Kategori skal udfyldes";
+        }
+
+        return null;
+    }
+
+    private boolean isConstraintViolation(Throwable throwable) {
+
+        Throwable current = throwable;
+
+        while (current != null) {
+            if (current instanceof ConstraintViolationException) {
+                return true;
+            }
+
+            current = current.getCause();
+        }
+
+        return false;
     }
 }

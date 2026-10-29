@@ -8,6 +8,7 @@ import app.dtos.TransactionDTO;
 import app.entities.Subcategory;
 import app.entities.Transaction;
 import app.entities.User;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 
 import java.math.BigDecimal;
@@ -37,17 +38,10 @@ public class TransactionController {
             List<Transaction> transactions =
                     transactionDAO.findByUserId(userId);
 
-            List<TransactionDTO> transactionDTOs = transactions.stream()
-                    .map(transaction -> new TransactionDTO(
-                            transaction.getId(),
-                            transaction.getAmount(),
-                            transaction.getDate(),
-                            transaction.getType(),
-                            transaction.getDescription(),
-                            transaction.getSubcategory().getId(),
-                            transaction.getSubcategory().getName()
-                    ))
-                    .toList();
+            List<TransactionDTO> transactionDTOs =
+                    transactions.stream()
+                            .map(this::toDTO)
+                            .toList();
 
             ctx.json(transactionDTOs);
 
@@ -74,17 +68,7 @@ public class TransactionController {
                 return;
             }
 
-            TransactionDTO transactionDTO = new TransactionDTO(
-                    transaction.getId(),
-                    transaction.getAmount(),
-                    transaction.getDate(),
-                    transaction.getType(),
-                    transaction.getDescription(),
-                    transaction.getSubcategory().getId(),
-                    transaction.getSubcategory().getName()
-            );
-
-            ctx.json(transactionDTO);
+            ctx.json(toDTO(transaction));
 
         } catch (NumberFormatException e) {
             ctx.status(400).json(Map.of(
@@ -104,32 +88,11 @@ public class TransactionController {
             CreateTransactionDTO dto =
                     ctx.bodyAsClass(CreateTransactionDTO.class);
 
-            if (dto.amount() == null ||
-                    dto.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            String validationError = validate(dto);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Beløbet skal være større end 0"
-                ));
-                return;
-            }
-
-            if (dto.date() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Dato skal angives"
-                ));
-                return;
-            }
-
-            if (dto.type() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Transaktionstype skal angives"
-                ));
-                return;
-            }
-
-            if (dto.subcategoryId() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Underkategori skal angives"
+                        "message", validationError
                 ));
                 return;
             }
@@ -138,20 +101,20 @@ public class TransactionController {
 
             User user = userDAO.findById(userId);
 
-            Subcategory subcategory =
-                    subcategoryDAO.findById(dto.subcategoryId());
-
-            if (user == null || subcategory == null) {
+            if (user == null) {
                 ctx.status(404).json(Map.of(
-                        "message", "Bruger eller underkategori blev ikke fundet"
+                        "message", "Brugeren blev ikke fundet"
                 ));
                 return;
             }
 
-            if (subcategory.getCategory() == null ||
-                    subcategory.getCategory().getUser() == null ||
-                    !subcategory.getCategory().getUser().getId().equals(userId)) {
+            Subcategory subcategory =
+                    subcategoryDAO.findByIdAndUserId(
+                            dto.subcategoryId(),
+                            userId
+                    );
 
+            if (subcategory == null) {
                 ctx.status(404).json(Map.of(
                         "message", "Underkategorien blev ikke fundet"
                 ));
@@ -170,21 +133,16 @@ public class TransactionController {
             Transaction createdTransaction =
                     transactionDAO.create(transaction);
 
-            TransactionDTO response = new TransactionDTO(
-                    createdTransaction.getId(),
-                    createdTransaction.getAmount(),
-                    createdTransaction.getDate(),
-                    createdTransaction.getType(),
-                    createdTransaction.getDescription(),
-                    createdTransaction.getSubcategory().getId(),
-                    createdTransaction.getSubcategory().getName()
-            );
+            ctx.status(201).json(toDTO(createdTransaction));
 
-            ctx.status(201).json(response);
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
 
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Transaktionen kunne ikke oprettes"
             ));
         }
@@ -208,44 +166,22 @@ public class TransactionController {
             CreateTransactionDTO dto =
                     ctx.bodyAsClass(CreateTransactionDTO.class);
 
-            if (dto.amount() == null ||
-                    dto.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            String validationError = validate(dto);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Beløbet skal være større end 0"
-                ));
-                return;
-            }
-
-            if (dto.date() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Dato skal angives"
-                ));
-                return;
-            }
-
-            if (dto.type() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Transaktionstype skal angives"
-                ));
-                return;
-            }
-
-            if (dto.subcategoryId() == null) {
-                ctx.status(400).json(Map.of(
-                        "message", "Underkategori skal angives"
+                        "message", validationError
                 ));
                 return;
             }
 
             Subcategory subcategory =
-                    subcategoryDAO.findById(dto.subcategoryId());
+                    subcategoryDAO.findByIdAndUserId(
+                            dto.subcategoryId(),
+                            userId
+                    );
 
-            if (subcategory == null ||
-                    subcategory.getCategory() == null ||
-                    subcategory.getCategory().getUser() == null ||
-                    !subcategory.getCategory().getUser().getId().equals(userId)) {
-
+            if (subcategory == null) {
                 ctx.status(404).json(Map.of(
                         "message", "Underkategorien blev ikke fundet"
                 ));
@@ -261,26 +197,21 @@ public class TransactionController {
             Transaction updatedTransaction =
                     transactionDAO.update(existing);
 
-            TransactionDTO response = new TransactionDTO(
-                    updatedTransaction.getId(),
-                    updatedTransaction.getAmount(),
-                    updatedTransaction.getDate(),
-                    updatedTransaction.getType(),
-                    updatedTransaction.getDescription(),
-                    updatedTransaction.getSubcategory().getId(),
-                    updatedTransaction.getSubcategory().getName()
-            );
-
-            ctx.json(response);
+            ctx.json(toDTO(updatedTransaction));
 
         } catch (NumberFormatException e) {
             ctx.status(400).json(Map.of(
                     "message", "Ugyldigt transaktions-id"
             ));
 
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Transaktionen kunne ikke opdateres"
             ));
         }
@@ -314,5 +245,39 @@ public class TransactionController {
                     "message", "Transaktionen kunne ikke slettes"
             ));
         }
+    }
+
+    private String validate(CreateTransactionDTO dto) {
+
+        if (dto.amount() == null ||
+                dto.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            return "Beløbet skal være større end 0";
+        }
+
+        if (dto.date() == null) {
+            return "Dato skal angives";
+        }
+
+        if (dto.type() == null) {
+            return "Transaktionstype skal angives";
+        }
+
+        if (dto.subcategoryId() == null) {
+            return "Underkategori skal angives";
+        }
+
+        return null;
+    }
+
+    private TransactionDTO toDTO(Transaction transaction) {
+        return new TransactionDTO(
+                transaction.getId(),
+                transaction.getAmount(),
+                transaction.getDate(),
+                transaction.getType(),
+                transaction.getDescription(),
+                transaction.getSubcategory().getId(),
+                transaction.getSubcategory().getName()
+        );
     }
 }

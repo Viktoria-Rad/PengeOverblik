@@ -4,8 +4,10 @@ import app.daos.CategoryDAO;
 import app.daos.UserDAO;
 import app.entities.Category;
 import app.entities.User;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 
 import java.util.List;
 import java.util.Map;
@@ -72,12 +74,11 @@ public class CategoryController {
             Category request =
                     ctx.bodyAsClass(Category.class);
 
-            if (request.getName() == null ||
-                    request.getName().isBlank() ||
-                    request.getType() == null) {
+            String validationError = validate(request);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Navn og type skal udfyldes"
+                        "message", validationError
                 ));
                 return;
             }
@@ -102,10 +103,15 @@ public class CategoryController {
 
             ctx.status(201).json(created);
 
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
 
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Kategorien kunne ikke oprettes"
             ));
         }
@@ -129,12 +135,11 @@ public class CategoryController {
             Category request =
                     ctx.bodyAsClass(Category.class);
 
-            if (request.getName() == null ||
-                    request.getName().isBlank() ||
-                    request.getType() == null) {
+            String validationError = validate(request);
 
+            if (validationError != null) {
                 ctx.status(400).json(Map.of(
-                        "message", "Navn og type skal udfyldes"
+                        "message", validationError
                 ));
                 return;
             }
@@ -152,10 +157,15 @@ public class CategoryController {
                     "message", "Ugyldigt kategori-id"
             ));
 
+        } catch (BadRequestResponse e) {
+            ctx.status(400).json(Map.of(
+                    "message", "Ugyldige data i request body"
+            ));
+
         } catch (Exception e) {
             e.printStackTrace();
 
-            ctx.status(400).json(Map.of(
+            ctx.status(500).json(Map.of(
                     "message", "Kategorien kunne ikke opdateres"
             ));
         }
@@ -184,9 +194,48 @@ public class CategoryController {
             ));
 
         } catch (Exception e) {
-            ctx.status(409).json(Map.of(
-                    "message", "Kategorien er i brug og kan ikke slettes"
-            ));
+            e.printStackTrace();
+
+            if (isConstraintViolation(e)) {
+                ctx.status(409).json(Map.of(
+                        "message",
+                        "Kategorien er i brug og kan ikke slettes"
+                ));
+            } else {
+                ctx.status(500).json(Map.of(
+                        "message",
+                        "Kategorien kunne ikke slettes"
+                ));
+            }
         }
+    }
+
+    private String validate(Category request) {
+
+        if (request.getName() == null ||
+                request.getName().isBlank()) {
+            return "Navn skal udfyldes";
+        }
+
+        if (request.getType() == null) {
+            return "Type skal udfyldes";
+        }
+
+        return null;
+    }
+
+    private boolean isConstraintViolation(Throwable throwable) {
+
+        Throwable current = throwable;
+
+        while (current != null) {
+            if (current instanceof ConstraintViolationException) {
+                return true;
+            }
+
+            current = current.getCause();
+        }
+
+        return false;
     }
 }
